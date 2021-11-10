@@ -9,10 +9,10 @@ from threading import Thread, Lock
 # My files
 from ASL_config import *
 
-
 # Backup paths
+# TODO: put everything is a json config file
 HOME = '/home/backup_user/'
-TEST_PATH = HOME+'test/' # TODO: delete this
+TEST_PATH = HOME + 'test/'  # TODO: delete this
 LOG_PATH = HOME + 'logs/'
 WEBSRV_BACKUP_PATH = HOME + 'websrv_backup/'
 CA_BACKUP_PATH = HOME + 'CA_backup/'
@@ -28,24 +28,22 @@ ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
 
 # Misc.
-err_prefix = 'ERR: '
-BUFSIZE = 1024
-
-lock=Lock()
+lock = Lock()
 
 logging.basicConfig(level=logging.INFO)
 backup_log = logging.getLogger('backup_logger')
 backup_log.setLevel(logging.DEBUG)
 
-
 ### FUNCTIONS ########################################
+
 
 def get_timestamp():
     return str(datetime.now().strftime('%d.%m.%Y-%H:%M:%S'))
 
+
 def get_folder_from_ip(ip_addr):
-    if ip_addr == TEST_IP: # TODO: delete this
-        return TEST_PATH # TODO: delete this
+    if ip_addr == TEST_IP:  # TODO: delete this
+        return TEST_PATH  # TODO: delete this
     elif ip_addr == WEBSRV_IP:
         return WEBSRV_BACKUP_PATH
     elif ip_addr == CA_IP:
@@ -57,12 +55,16 @@ def get_folder_from_ip(ip_addr):
     else:
         return None
 
+
 def gen_backup_name(backup_folder, filename):
     return backup_folder + filename + '.BACKUP-' + get_timestamp()
 
+
 def event_failed_backup_to_log(e, ip_addr):
     with open(LOG_PATH, 'a') as f:
-        f.writelines(err_prefix + 'backup failed for ip' + ip_addr + '\n\tError: '+str(e))
+        f.writelines(err_prefix + 'backup failed for ip' + ip_addr +
+                     '\n\tError: ' + str(e))
+
 
 def append_changes(tmp_path, backup_path):
     if exists(backup_path):
@@ -95,23 +97,24 @@ def backup(conn, ip_addr):
     backup_folder = get_folder_from_ip(ip_addr)
     if backup_folder is None:
         conn.close()
-        backup_log.debug(err_prefix+'unknown IP: '+ip_addr)
+        backup_log.debug(err_prefix + 'unknown IP: ' + ip_addr)
         return
 
     # Get name from connection
     data_recv = conn.recv(BUFSIZE)
-    backup_log.debug('data_recv: '+str(data_recv))
+    backup_log.debug('data_recv: ' + str(data_recv))
     data_split = data_recv.split(' '.encode('utf-8'))
     filename = data_split[0].decode('utf-8')
     try:
-        log_indication = data_split[1].decode('utf-8') #if log, then value='log'
+        log_indication = data_split[1].decode(
+            'utf-8')  #if log, then value='log'
     except Exception as e:
         log_indication = None
 
     # If log => append; else create new file
-    is_log = (log_indication == 'log')
+    is_log = (log_indication == 'True')
     if is_log:
-        dest_path = backup_folder+'tmp_log'
+        dest_path = backup_folder + 'tmp_log'
     else:
         dest_path = gen_backup_name(backup_folder, filename)
 
@@ -131,7 +134,7 @@ def backup(conn, ip_addr):
             append_changes(dest_path, real_log_path)
 
     except Exception as e:
-        backup_log.debug(err_prefix+'error in backup server: '+e)
+        backup_log.debug(err_prefix + 'error in backup server: ' + e)
         event_failed_backup_to_log(e, ip_addr)
 
     finally:
@@ -143,6 +146,7 @@ def backup(conn, ip_addr):
 
 ### CLASSES ##########################################
 
+
 class BackupThread(Thread):
     def __init__(self, connection, ip_addr):
         super(BackupThread, self).__init__()
@@ -152,6 +156,7 @@ class BackupThread(Thread):
     def run(self):
         backup(self.connection, self.ip_addr)
         return
+
 
 ### MAIN #############################################
 def main():
@@ -163,15 +168,17 @@ def main():
             while True:
                 conn, addr = ssock.accept()
 
-                backup_log.info('Connection from '+ str(addr) + ' at ' + get_timestamp())
+                backup_log.info('Connection from ' + str(addr) + ' at ' +
+                                get_timestamp())
 
                 # Create a thread for backup
                 try:
                     thread = BackupThread(conn, addr[0])
                     thread.start()
                 except:
-                    backup_log.debug(err_prefix + 'error while processing connection ' +
-                          str(conn))
+                    backup_log.debug(err_prefix +
+                                     'error while processing connection ' +
+                                     str(conn))
 
 
 if __name__ == '__main__':
