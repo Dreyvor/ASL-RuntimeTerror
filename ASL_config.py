@@ -13,4 +13,11 @@ backup_cert_path = CERTS_PATH + '/backup_srv_TLS_CSR_signed.pem'
 backup_priv_key_path = CERTS_PATH + '/backup_srv_TLS_CSR.key'
 
 ##### IP:PORT
-BACKUP_SRV_IP, BACKUP_SRV_PORT= '127.0.0.1', 8888
+BACKUP_SRV_IP, BACKUP_SRV_PORT = '127.0.0.1', 8888
+WEBSRV_IP = '192.168.20.10'
+CA_IP = '192.168.10.10'
+BACKUP_IP = '192.168.10.20'
+DB_IP = '192.168.10.30'
+FIREWALL_IP = '192.168.10.01'
+#TEST_IP = '192.168.0.69' # TODO: delete this one
+TEST_IP = '127.0.0.1' # TODO: delete this one

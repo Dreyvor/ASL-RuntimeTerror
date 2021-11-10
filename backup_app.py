@@ -4,7 +4,8 @@ Backup application that will be deployed on the different machines that need to 
 
 import socket
 import ssl
-from os import getcwd
+import logging
+import json
 from ASL_config import *
 
 #### SSL context
@@ -15,9 +16,20 @@ ssl_ctx.verify_mode = ssl.CERT_REQUIRED
 ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
-	with ssl_ctx.wrap_socket(sock, server_hostname=BACKUP_SRV_IP) as ssock:
-		ssock.connect((BACKUP_SRV_IP, BACKUP_SRV_PORT))
-		print(ssock.version())
+# Read json for config
+# TODO: read config
 
-print('No problem encountered!\nWe correctly stopped the connection!')
+backup_agent_log = logging.getLogger('backup_agent')
+
+def main():
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
+	    with ssl_ctx.wrap_socket(sock, server_hostname=BACKUP_SRV_IP) as ssock:
+	        ssock.connect((BACKUP_SRV_IP, BACKUP_SRV_PORT))
+	        print(ssock.version())
+
+	print('No problem encountered!\nWe correctly stopped the connection!')
+
+### MAIN #############################################
+
+if __name__ == '__main__':
+	main()
