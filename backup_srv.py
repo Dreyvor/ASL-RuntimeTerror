@@ -11,7 +11,8 @@ from ASL_config import *
 
 # Backup paths
 # TODO: put everything is a json config file
-HOME = '/home/backup_user/'
+# HOME = '/home/backup_user/'
+HOME = '/home/brad/' # TODO: delete this
 TEST_PATH = HOME + 'test/'  # TODO: delete this
 LOG_PATH = HOME + 'logs/'
 WEBSRV_BACKUP_PATH = HOME + 'websrv_backup/'
@@ -38,7 +39,7 @@ backup_log.setLevel(logging.DEBUG)
 
 
 def get_timestamp():
-    return str(datetime.now().strftime('%d.%m.%Y-%H:%M:%S'))
+    return str(datetime.now().strftime('%d.%m.%Y-%Hh%Mm%Ss'))
 
 
 def get_folder_from_ip(ip_addr):
