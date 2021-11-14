@@ -1,3 +1,4 @@
 ASL.sublime-*
 .idea/
 ca-storage
+*/__pycache__/
