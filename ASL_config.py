@@ -10,13 +10,13 @@ CERTS_PATH = ROOT_PATH + '/local_certs'
 ### Certs
 ## Root
 ca_cert_path = CERTS_PATH + '/rootCA-cert.pem'
+
 ## Backup 
 backup_cert_path = CERTS_PATH + '/backup_srv_TLS_CSR_signed.pem'
 backup_priv_key_path = CERTS_PATH + '/backup_srv_TLS_CSR.key'
 
 ##### IP:PORT
 BACKUP_SRV_IP, BACKUP_SRV_PORT = '127.0.0.1', 8888 # TODO: modify this
-#BACKUP_SRV_IP, BACKUP_SRV_PORT = '192.168.10.20', 8888
 WEBSRV_IP = '192.168.20.10'
 CA_IP = '192.168.10.10'
 DB_IP = '192.168.10.30'

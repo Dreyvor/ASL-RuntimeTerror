@@ -1,6 +1,7 @@
 import socket
 import ssl
 import logging
+import json
 from os import rename, remove
 from os.path import exists
 from datetime import datetime
@@ -14,7 +15,7 @@ from ASL_config import *
 # HOME = '/home/backup_user/'
 HOME = '/home/brad/' # TODO: delete this
 TEST_PATH = HOME + 'test/'  # TODO: delete this
-LOG_PATH = HOME + 'logs/'
+LOG_PATH = HOME + 'logs/backup_srv.log'
 WEBSRV_BACKUP_PATH = HOME + 'websrv_backup/'
 CA_BACKUP_PATH = HOME + 'CA_backup/'
 DB_BACKUP_PATH = HOME + 'DB_backup/'
@@ -43,6 +44,7 @@ def get_timestamp():
 
 
 def get_folder_from_ip(ip_addr):
+    # TODO: put these IP in the config file
     if ip_addr == TEST_IP:  # TODO: delete this
         return TEST_PATH  # TODO: delete this
     elif ip_addr == WEBSRV_IP:
@@ -76,11 +78,15 @@ def append_changes(tmp_path, backup_path):
             last_line = line.strip()
 
         start_write = False
+        first_line = True
 
         with open(backup_path, 'a') as backup_f_append:
             with open(tmp_path, 'r') as tmp_f:
                 for line in tmp_f:
                     if start_write:
+                        if first_line:
+                            backup_f_append.write('\n')
+                            first_line = False
                         backup_f_append.write(line)
                     elif line.strip() == last_line:
                         start_write = True
@@ -128,14 +134,13 @@ def backup(conn, ip_addr):
             while data:
                 f.write(data)
                 data = conn.recv(BUFSIZE)
-
         # if it's log, then append to already created file
         if is_log:
             real_log_path = backup_folder + filename + '.BACKUP'
             append_changes(dest_path, real_log_path)
 
     except Exception as e:
-        backup_log.debug(err_prefix + 'error in backup server: ' + e)
+        backup_log.debug(err_prefix + 'error in backup server: ' + str(e))
         event_failed_backup_to_log(e, ip_addr)
 
     finally:
