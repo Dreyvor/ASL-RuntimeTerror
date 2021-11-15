@@ -2,7 +2,7 @@
 
 # Thanks to https://dev.to/techschoolguru/how-to-create-sign-ssl-tls-certificates-2aai
 
-BACKUP_SRV_IP="127.0.0.1"
+BACKUP_SRV_IP="192.168.10.20"
 
 # Generate CA's private key and self-signed certificate
 gen_TLS_CA_cert() {
