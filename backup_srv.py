@@ -2,29 +2,33 @@ import socket
 import ssl
 import logging
 import json
+import argparse
 from os import rename, remove
 from os.path import exists
 from datetime import datetime
 from threading import Thread, Lock
+from pathlib import Path
 
 # My files
 from ASL_config import *
 
-# Backup paths
-# TODO: put everything is a json config file
-# HOME = '/home/backup_user/'
-HOME = '/home/brad/' # TODO: delete this
-TEST_PATH = HOME + 'test/'  # TODO: delete this
-LOG_PATH = HOME + 'logs/backup_srv.log'
-WEBSRV_BACKUP_PATH = HOME + 'websrv_backup/'
-CA_BACKUP_PATH = HOME + 'CA_backup/'
-DB_BACKUP_PATH = HOME + 'DB_backup/'
-FIREWALL_BACKUP_PATH = HOME + 'firewall_backup/'
+# Read and parse arguments
+parser = argparse.ArgumentParser(description='Backup server')
+parser.add_argument('-c', '--config_file_path', metavar='cfg_path', type=str, default='/etc/backup_server.cfg', help='The path to the JSON config file (default: /etc/backup_server.cfg)')
+args = parser.parse_args()
+
+# Read the JSON config file
+try:
+    with open(args.config_file_path, 'r') as f:
+        cfg = json.load(f)
+except Exception as e:
+    print(err_prefix + 'error when trying to read the config file. Check the path and file rights:\n\t' + str(e))
+    exit(-1)
 
 # SSL context creation
 ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_ctx.load_cert_chain(backup_cert_path, backup_priv_key_path)
-ssl_ctx.load_verify_locations(ca_cert_path)
+ssl_ctx.load_cert_chain(cfg['TLS_cert_path'], cfg['TLS_private_key_path'])
+ssl_ctx.load_verify_locations(cfg['root_ca_path'])
 ssl_ctx.verify_mode = ssl.CERT_REQUIRED
 ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
 ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
@@ -33,7 +37,7 @@ ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
 lock = Lock()
 
 logging.basicConfig(level=logging.INFO)
-backup_log = logging.getLogger('backup_logger')
+backup_log = logging.getLogger('backup_server')
 backup_log.setLevel(logging.DEBUG)
 
 ### FUNCTIONS ########################################
@@ -44,19 +48,10 @@ def get_timestamp():
 
 
 def get_folder_from_ip(ip_addr):
-    # TODO: put these IP in the config file
-    if ip_addr == TEST_IP:  # TODO: delete this
-        return TEST_PATH  # TODO: delete this
-    elif ip_addr == WEBSRV_IP:
-        return WEBSRV_BACKUP_PATH
-    elif ip_addr == CA_IP:
-        return CA_BACKUP_PATH
-    elif ip_addr == DB_IP:
-        return DB_BACKUP_PATH
-    elif ip_addr == FIREWALL_IP:
-        return FIREWALL_BACKUP_PATH
-    else:
-        return None
+    """
+    Returns the folder where to save the backpu for a given IP address or None if the IP is not known (written in the config file)
+    """
+    return cfg['backup_paths'].get(ip_addr)
 
 
 def gen_backup_name(backup_folder, filename):
@@ -64,7 +59,7 @@ def gen_backup_name(backup_folder, filename):
 
 
 def event_failed_backup_to_log(e, ip_addr):
-    with open(LOG_PATH, 'a') as f:
+    with open(cfg['server_logs_path'], 'a') as f:
         f.writelines(err_prefix + 'backup failed for ip' + ip_addr +
                      '\n\tError: ' + str(e))
 
@@ -114,7 +109,7 @@ def backup(conn, ip_addr):
     filename = data_split[0].decode('utf-8')
     try:
         log_indication = data_split[1].decode(
-            'utf-8')  #if log, then value='log'
+            'utf-8')  #if log, then value='True'
     except Exception as e:
         log_indication = None
 
@@ -127,6 +122,7 @@ def backup(conn, ip_addr):
 
     # Start receiving data and writing to file ==> beware of concurrence ==> lock
     lock.acquire()
+    backup_log.info('Lock acquired to write into: '+dest_path)
 
     try:
         with open(dest_path, 'wb') as f:
@@ -145,6 +141,7 @@ def backup(conn, ip_addr):
 
     finally:
         lock.release()
+        backup_log.info('Lock released')
         conn.close()
 
     return
@@ -167,7 +164,7 @@ class BackupThread(Thread):
 ### MAIN #############################################
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
-        sock.bind((BACKUP_SRV_IP, BACKUP_SRV_PORT))
+        sock.bind((cfg['backup_srv_ip'], cfg['backup_srv_port']))
         sock.listen(5)
         with ssl_ctx.wrap_socket(sock, server_side=True) as ssock:
 

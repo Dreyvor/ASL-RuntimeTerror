@@ -25,7 +25,6 @@ import utils
 parser = argparse.ArgumentParser(description='Backup agent')
 parser.add_argument('-c', '--config_file_path', metavar='cfg_path', type=str, default='/etc/backup_agent.cfg', help='The path to the JSON config file (default: /etc/backup_agent.cfg)')
 args = parser.parse_args()
-print(args.config_file_path)
 
 # Read the JSON config file
 try:

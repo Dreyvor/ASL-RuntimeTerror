@@ -2,3 +2,4 @@ ASL.sublime-*
 __pycache__/
 personal_notes.md
 backup_agent.cfg
+backup_server.cfg
