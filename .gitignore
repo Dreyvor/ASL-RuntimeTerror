@@ -3,3 +3,5 @@ __pycache__/
 personal_notes.md
 backup_agent.cfg
 backup_server.cfg
+.idea/
+*-ca-storage
