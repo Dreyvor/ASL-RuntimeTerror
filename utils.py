@@ -2,8 +2,8 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 
-# My files
-from ASL_config import *
+err_prefix = 'ERR: '
+BUFSIZE = 1024
 
 KEY_BYTE_LENGTH = 32
 IV_BYTE_LENGTH = 8

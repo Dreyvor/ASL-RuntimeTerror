@@ -18,7 +18,6 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # My files
-from ASL_config import *
 import utils
 
 # Read and parse arguments
@@ -31,7 +30,7 @@ try:
     with open(args.config_file_path, 'r') as f:
         cfg = json.load(f)
 except Exception as e:
-    print(err_prefix + 'error when trying to read the config file. Check the path and file rights:\n\t' + str(e))
+    print(utils.err_prefix + 'error when trying to read the config file. Check the path and file rights:\n\t' + str(e))
     exit(-1)
 
 # Configure logger
@@ -89,7 +88,7 @@ class Watcher():
         except Exception as e:
             self.observer.stop()
             backup_agent_log.debug(
-                err_prefix + 'error while watching file modifications:\n\t' +
+                utils.err_prefix + 'error while watching file modifications:\n\t' +
                 str(e))
 
         self.observer.join()
@@ -109,10 +108,10 @@ class WatcherThread(Thread):
 
 def encrypt_file(path):
     with open(path, 'rb') as f:
-        data = f.read(BUFSIZE)
+        data = f.read(utils.BUFSIZE)
         buffer = data
         while data:
-            data = f.read(BUFSIZE)
+            data = f.read(utils.BUFSIZE)
             buffer += data
 
         data_encrypted = utils.encrypt(cfg['AES_encryption_key_path'], buffer)
@@ -148,10 +147,10 @@ def start_backup(filename, path, is_log, need_enc):
                 backup_agent_log.info(
                     'Sending (encrypted)? data to the backup server')
                 with open(path_to_send, 'rb') as f:
-                    data = f.read(BUFSIZE)
+                    data = f.read(utils.BUFSIZE)
                     while data:
                         ssock.send(data)
-                        data = f.read(BUFSIZE)
+                        data = f.read(utils.BUFSIZE)
 
                 backup_agent_log.info('Data sent ==> no backup issue')
 
@@ -160,7 +159,7 @@ def start_backup(filename, path, is_log, need_enc):
                     remove(path_to_send)
 
             except Exception as e:
-                backup_agent_log.debug(err_prefix +
+                backup_agent_log.debug(utils.err_prefix +
                                        'error when trying to backup path: ' +
                                        path + '\n\t' + str(e))
 
@@ -174,13 +173,13 @@ def start_backup(filename, path, is_log, need_enc):
 def main():
     for to_backup in cfg['files_to_backup']:
         if(to_backup['is_log'] and to_backup['need_encryption']):
-            backup_agent_log.info(err_prefix + 'Impossible to encrypt logs, since we use append to end of file...\nPlease correct that for: '+ to_backup['path'])
+            backup_agent_log.info(utils.err_prefix + 'Impossible to encrypt logs, since we use append to end of file...\nPlease correct that for: '+ to_backup['path'])
             exit(1)
         try:
             t = WatcherThread(Watcher(to_backup['path'], to_backup['is_log'], to_backup['need_encryption']))
             t.start()
         except Exception as e:
-            backup_agent_log.debug(err_prefix +
+            backup_agent_log.debug(utils.err_prefix +
                                    'error when starting observer thread:\n\t' +
                                    str(e))
 

@@ -10,7 +10,7 @@ from threading import Thread, Lock
 from pathlib import Path
 
 # My files
-from ASL_config import *
+from utils import err_prefix, BUFSIZE
 
 # Read and parse arguments
 parser = argparse.ArgumentParser(description='Backup server')
