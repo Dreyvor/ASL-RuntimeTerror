@@ -1,6 +1,37 @@
 #!/bin/bash
 
-# TODO: Add ip forwarding in this script directly
+#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
+
+##### Add ipv4 forwarding
+echo -e "--- /etc/sysctl.conf.orig	2021-11-18 16:46:17.895959588 +0100
++++ /etc/sysctl.conf	2021-11-18 16:48:13.299958608 +0100
+@@ -25,12 +25,13 @@
+ #net.ipv4.tcp_syncookies=1
+ 
+ # Uncomment the next line to enable packet forwarding for IPv4
+-#net.ipv4.ip_forward=1
++net.ipv4.ip_forward=1
+ 
+ # Uncomment the next line to enable packet forwarding for IPv6
+ #  Enabling this option disables Stateless Address Autoconfiguration
+ #  based on Router Advertisements for this host
+ #net.ipv6.conf.all.forwarding=1
++net.ipv6.conf.all.forwarding=0
+ 
+ 
+ ###################################################################" > /tmp/etc_sysctl_conf.patch
+# Patch the sysconfig to enable ipv4 forwarding and disable ipv6 forwarding
+# Patch only if not already patched and keep backup in all case
+patch -R -p0 -s -f --dry-run /etc/sysctl.conf < /tmp/etc_sysctl_conf.patch
+if [ $? -ne 0 ]
+then
+	patch -b /etc/sysctl.conf < /tmp/etc_sysctl_conf.patch
+fi
+
+# Clean
+rm /tmp/etc_sysctl_conf.patch
+
+#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#=#
 
 ##### Start by resetting every rules with a standard blacklist #####
 
