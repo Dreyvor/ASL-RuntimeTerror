@@ -7,12 +7,9 @@ source /etc/network/interfaces.d/*
 auto lo
 iface lo inet loopback
 
-# configure static ip on internal network
 auto enp0s8
 iface enp0s8 inet static
-address 192.168.10.20
-network 192.168.10.0
+address 42.42.42.42
+network 42.42.42.0
 netmask 255.255.255.0
-gateway 192.168.10.1
-#dns-nameservers 8.8.8.8 192.168.10.1
-
+gateway 42.42.42.1

@@ -74,6 +74,7 @@ patch -R -p0 -s -f --dry-run /etc/sysctl.conf < /tmp/etc_sysctl_conf.patch
 if [ $? -ne 0 ]
 then
 	patch -b /etc/sysctl.conf < /tmp/etc_sysctl_conf.patch
+    echo "### /etc/sysctl.conf has been patched to enable IPv4 forwarding and disable IPv6 forwarding"
 fi
 
 # Clean
@@ -86,7 +87,7 @@ rm /tmp/etc_sysctl_conf.patch
 ### IPv4 ###
 /usr/sbin/iptables -P INPUT DROP
 /usr/sbin/iptables -P FORWARD DROP
-/usr/sbin/iptables -P OUTPUT DROP
+#/usr/sbin/iptables -P OUTPUT DROP
 
 # Drop old rules
 /usr/sbin/iptables -F
@@ -105,32 +106,32 @@ rm /tmp/etc_sysctl_conf.patch
 
 ### ACCEPT Normal traffic ###
 # User - web server
-/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 -dport 443 -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 -sport 443 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 --dport 443 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 --sport 443 -j ACCEPT
 
 # web server - core CA
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.10 -dport 8080 -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.10 -sport 8080 -d 192.168.20.10 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.10 --dport 8080 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.10 --sport 8080 -d 192.168.20.10 -j ACCEPT
 
 # web server - database
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.30 -dport 3306 -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.30 -sport 3306 -d 192.168.20.10 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.30 --dport 3306 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.30 --sport 3306 -d 192.168.20.10 -j ACCEPT
 
 # web server - backup
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.20 -dport 8888 -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.20 -sport 8888 -d 192.168.20.10 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.20 --dport 8888 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.20 --sport 8888 -d 192.168.20.10 -j ACCEPT
 
-### ACCEPT SSH admin traffic ###
+# ### ACCEPT SSH admin traffic ###
 # web server
-/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 -dport ssh -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 -sport ssh -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 --dport ssh -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 --sport ssh -j ACCEPT
 
 # Internal network
-/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s8 -p tcp -d 192.168.10.0/24 -dport ssh -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s10 -p tcp -s 192.168.10.0/24 -sport ssh -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s8 -p tcp -d 192.168.10.0/24 --dport ssh -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s10 -p tcp -s 192.168.10.0/24 --sport ssh -j ACCEPT
 
 # Firewall administration and configuration
-/usr/sbin/iptables -A INPUT -i enp0s10 -p tcp -d 42.42.42.1 -dport ssh -j ACCEPT
+/usr/sbin/iptables -A INPUT -i enp0s10 -p tcp -d 42.42.42.1 --dport ssh -j ACCEPT
 /usr/sbin/iptables -A INPUT -i lo -j ACCEPT
 
 ##### DDOS protection for the outside world #####
@@ -183,10 +184,13 @@ rm /tmp/etc_sysctl_conf.patch
 /usr/sbin/iptables -A INPUT -p tcp -m conntrack --ctstate NEW -j DROP  
 
 ### SSH brute-force protection ### 
-/usr/sbin/iptables -A TCP -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set 
-/usr/sbin/iptables -A TCP -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+/usr/sbin/iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --set 
+/usr/sbin/iptables -A INPUT -p tcp --dport ssh -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
 
 ### Protection against port scanning ###
 /usr/sbin/iptables -N port-scanning
 /usr/sbin/iptables -A port-scanning -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s --limit-burst 2 -j RETURN 
 /usr/sbin/iptables -A port-scanning -j DROP
+
+### Observe the result
+/usr/sbin/iptables -L -n -v

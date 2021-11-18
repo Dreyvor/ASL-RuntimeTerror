@@ -8,8 +8,8 @@ auto lo
 iface lo inet loopback
 
 # The primary network interface
-allow-hotplug enp0s3
-iface enp0s3 inet dhcp
+# allow-hotplug enp0s3
+# iface enp0s3 inet dhcp
 
 # The second network interface (intern)
 auto enp0s8
@@ -17,6 +17,7 @@ iface enp0s8 inet static
 address 192.168.10.1
 network 192.168.10.0
 netmask 255.255.255.0
+pre-up /etc/firewall_iptables.sh
 #gateway 192.168.10.1
 #dns-nameservers 8.8.8.8 192.168.10.1
 
