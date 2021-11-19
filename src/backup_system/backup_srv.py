@@ -169,19 +169,17 @@ def main():
         with ssl_ctx.wrap_socket(sock, server_side=True) as ssock:
 
             while True:
-                conn, addr = ssock.accept()
-
-                backup_log.info('Connection from ' + str(addr) + ' at ' +
-                                get_timestamp())
-
-                # Create a thread for backup
                 try:
+                    conn, addr = ssock.accept()
+                    backup_log.info('Connection from ' + str(addr) + ' at ' +
+                                    get_timestamp())
+
+                    # Create a thread for backup
                     thread = BackupThread(conn, addr[0])
                     thread.start()
-                except:
-                    backup_log.debug(err_prefix +
-                                     'error while processing connection ' +
-                                     str(conn))
+                except Exception as e:
+                    backup_log.debug(err_prefix + 'error when processing connection or starting backup thread: ' + str(e))
+
 
 
 if __name__ == '__main__':
