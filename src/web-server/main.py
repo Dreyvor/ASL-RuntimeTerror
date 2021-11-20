@@ -1,7 +1,36 @@
 from flask import Flask, request
 import requests
 
+
+class CAServerService:
+    def __init__(self, ca_server_address):
+        self.ca_server_address = ca_server_address
+
+    def get_certificate(self, host, dns_names, oids=None):
+        return requests.post(self.ca_server_address + "/get_certificate", {
+            "ost": host,
+            "dns_names": dns_names,
+            "oids": oids
+        })
+
+    def revoke_certificate(self, host, common_name):
+        return requests.post(self.ca_server_address + "/revoke_certificate", {
+            "host": host,
+            "common_name": common_name
+        })
+
+    def is_certificate_revoked(self, host):
+        return requests.get(self.ca_server_address + "/is_certificate_revoked", params={"host": host})
+
+    def root_ca_certificate(self):
+        return requests.get(self.ca_server_address + "/root_ca_certificate")
+
+    def intermediate_ca_certificate(self):
+        return requests.get(self.ca_server_address + "/intermediate_ca_certificate")
+
+
 app = Flask(__name__)
+ca_service = CAServerService("http://192.168.10.10:5000")
 
 
 @app.post("/login")
