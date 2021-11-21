@@ -1,0 +1,5 @@
+/*.pem
+/*.key
+/*.cnf
+/*.srl
+/create_cert_and_sign_with_intermediate.sh
