@@ -2,11 +2,13 @@
 import datetime
 import ipaddress
 from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
 from cryptography.x509.oid import NameOID
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from OpenSSL.crypto import *
+
 
 validity_root_days = 10*365
 validity_intermediate_days = 5*365
@@ -24,10 +26,30 @@ def gen_private_key(key_size):
             key_size=key_size,
             backend=default_backend())
 
+
+def read_file_bytes(filename):
+    with open(filename, "rb") as f:
+        data = f.read()
+    return data
+
+
+def get_cert_from_file(cert_filename):
+    cert_pem = read_file_bytes(cert_filename)
+    return x509.load_pem_x509_certificate(cert_pem, default_backend())
+
+
+def get_key_from_file(key_filename):
+    with open(KEYS_PATH + key_filename, 'rb') as f:
+        data = f.read()
+    private_key = load_pem_private_key(data, None, default_backend())
+    return private_key
+
+
 def save_certificate(cert, filename):
     with open(CERTIFICATES_PATH + filename, 'w') as file:
         file.write(
             cert.public_bytes(encoding=serialization.Encoding.PEM).decode())
+
 
 def save_key(key, filename):
     pem = key.private_bytes(
@@ -37,6 +59,21 @@ def save_key(key, filename):
     )
     with open(KEYS_PATH + filename, 'wb') as pem_out:
         pem_out.write(pem)
+
+
+def gen_pkcs12_format_bytes(cert_path, key_path):
+    # Generate a file that is ready to be written with "f=open(path, 'wb');f.write(data)"
+    pkcs12 = PKCS12()
+
+    with open(cert_path, "r") as cert_file:
+        cert = load_certificate(FILETYPE_PEM, cert_file.read())
+        pkcs12.set_certificate(cert)
+
+    with open(key_path, "r") as key_file:
+        key = load_privatekey(FILETYPE_PEM, key_file.read())
+        pkcs12.set_privatekey(key)
+    
+    return pkcs12.export()
 
 ### Create certificates ############################################
 
