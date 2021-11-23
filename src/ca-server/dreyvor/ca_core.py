@@ -1,12 +1,17 @@
 import datetime
 import ipaddress
+
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
 from OpenSSL.crypto import *
+
+from os import listdir
+from os.path import isfile, join
 
 # My files
 from ca_config import *
@@ -31,10 +36,9 @@ def get_cert_from_file(cert_file_path):
     return x509.load_pem_x509_certificate(cert_pem, default_backend())
 
 
-def get_key_from_file(key_filename):
-    with open(PRIVKEYS_PATH + key_filename, 'rb') as f:
-        data = f.read()
-    private_key = load_pem_private_key(data, None, default_backend())
+def get_key_from_file(key_file_path):
+    key_pem = read_file_bytes(key_file_path)
+    private_key = load_pem_private_key(key_pem, None, default_backend())
     return private_key
 
 
@@ -66,6 +70,36 @@ def gen_pkcs12_format_bytes(cert_path, key_path):
         pkcs12.set_privatekey(key)
 
     return pkcs12.export()
+
+
+def get_cert_from_uid(uid):
+    """
+    Returns a certificate corresponding to the user id if there is some.
+    None if none issued or already revoked
+    """
+    # Get all issued cert for a given uid
+    all_issued_certs_for_uid = [
+        c for c in listdir(ISSUED_PATH)
+        if (isfile(join(ISSUED_PATH, c)) and f.endswith('.pem') and (uid in c))
+    ]
+
+    # Get all cert that has been revoked from the previous set
+    crl = CRL()  # create a CRL to check if a cert has been revoked
+    _, crl_pem = crl.get_crl()
+
+    # Now mix the two results to extract the valid certs
+    valid_certs = [
+        c for c in all_issued_certs_for_uid
+        if not is_revoked(get_cert_from_file(ISSUED_PATH + c), crl_pem=crl_pem)
+    ]
+
+    # if there exists a valid certificate, returns it
+    if len(valid_certs) > 0:
+        cert = get_cert_from_file(ISSUED_PATH + valid_certs[0])
+        return cert
+
+    # else, return None
+    return None
 
 
 ### Create certificates ############################################
@@ -182,6 +216,54 @@ def gen_TLS_cert(ip_addr, issuer_cert, issuer_key):
                                         default_backend())
 
     return certificate, private_key
+
+
+### CRL #######################################################
+
+
+def gen_revocation_list(revoked_folder_path):
+    return [
+        revoke_cert(get_cert_from_file(revoked_folder_path + p))
+        for p in listdir(revoked_folder_path) if p.endswith('.pem')
+    ]
+
+
+class CRL:
+    def __init__(self, folder_path, cert_path, private_key_path):
+        #super(CRL, self).__init__()
+        self.folder_path = folder_path
+        self.cert_path = cert_path
+        self.private_key_path = private_key_path
+
+        self.revoked_certificates = gen_revocation_list(self.folder_path +
+                                                        REVOKED_FOLDER_NAME)
+
+    def get_crl():
+        the_cert = get_cert_from_file(self.cert_path)
+        the_key = get_key_from_file(self.private_key_path)
+
+        CRL_builder = x509.CertificateRevocationListBuilder().last_update(
+            datetime.datetime.utcnow()).next_update(
+                datetime.datetime.utcnow() +
+                datetime.timedelta(1, 0, 0)).issuer_name(the_cert.subject)
+
+        # TODO: check if the intermediate cert is not revoked by root
+        if self.revoked_certificates:
+            for revoked_cert in self.revoked_certificates:
+                CRL_builder.add_revoked_certificate(revoked_cert)
+
+        crl = CRL_builder.sign(private_key=the_key,
+                               algorithm=hashes.SHA256(),
+                               backend=default_backend())
+
+        return crl, crl.public_bytes(encoding=serialization.Encoding.PEM)
+
+    def update_crl():
+        return NotImplementedError
+
+
+def is_revoked(certificate, crl_pem=None, crl_path=''):
+    return NotImplementedError
 
 
 ### MAIN ########################################################

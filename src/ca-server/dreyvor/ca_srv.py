@@ -9,8 +9,8 @@ from ca_config import *
 
 ### SSL Context ##########################################
 
-
 ### FUNCTIONS ############################################
+
 
 def create_ssl_context():
     ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -20,6 +20,7 @@ def create_ssl_context():
     ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
     return ssl_ctx
+
 
 def init_ca_server(logger):
     # Create paths if not done
@@ -57,17 +58,20 @@ def init_ca_server(logger):
             save_key(inter_key, INTERMEDIATE_PRIVKEY_PATH)
     else:
         logger.info(
-            '!!! WARNING !!!\nINTERMEDIATE CERTIFICATE EXISTS WITH AN OLD ROOT, WE CREATE A NEW ONE')
+            '!!! WARNING !!!\nINTERMEDIATE CERTIFICATE EXISTS WITH AN OLD ROOT, WE CREATE A NEW ONE'
+        )
         inter_cert, inter_key = gen_intermediate_ca(root_cert, root_key)
         save_certificate(inter_cert, INTERMEDIATE_CERT_PATH)
         save_key(inter_key, INTERMEDIATE_PRIVKEY_PATH)
 
     # TLS
-    if not (inter_already_existant and Path.is_file(TLS_CERT_PATH) and
-            not Path.is_symlink(TLS_CERT_PATH) and Path.is_file(TLS_KEY_PATH)
-            and not Path.is_symlink(TLS_KEY_PATH)):
+    if not (inter_already_existant and Path(TLS_CERT_PATH).is_file()
+            and not Path(TLS_CERT_PATH).is_symlink()
+            and Path(TLS_KEY_PATH).is_file()
+            and not Path(TLS_KEY_PATH).is_symlink()):
         logger.info(
-            '!!! WARNING !!!\nTLS CERTIFICATE NON-EXISTENT OR SIGNED WITH AN OLD INTERMEDIATE, WE CREATE A NEW ONE')
+            '!!! WARNING !!!\nTLS CERTIFICATE NON-EXISTENT OR SIGNED WITH AN OLD INTERMEDIATE, WE CREATE A NEW ONE'
+        )
         TLS_cert, TLS_key = gen_TLS_cert(IP_CA_SRV, inter_cert, inter_key)
         save_certificate(TLS_cert, TLS_CERT_PATH)
         save_key(TLS_key, TLS_KEY_PATH)
@@ -102,7 +106,9 @@ def main():
     # Define access urls
 
     @app.route('/get_new_cert', methods=['POST'])
-    def gen_new_cert():  # TODO: don't forget to remove key in the end
+    # TODO: don't forget to remove the created private key in the end
+    # TODO: send the certificate in PKCS12 format
+    def gen_new_cert():
         user_info = request.json
 
     @app.route('/verify', methods=['POST'])
@@ -117,14 +123,17 @@ def main():
     def get_stats():
         return NotImplementedError
 
-    @app.route('/favicon.ico')
-    def favicon():
-        return send_from_directory(HOME,
-                                   'favicon.ico',
-                                   mimetype='image/vnd.microsoft.icon')
+    # @app.route('/favicon.ico')
+    # def favicon():
+    #     return send_from_directory(HOME,
+    #                                'favicon.ico',
+    #                                mimetype='image/vnd.microsoft.icon')
 
-    app.run(host=IP_CA_SRV, port=PORT_CA_SRV, ssl_context=ssl_ctx,
-            threaded=True)
+    app.run(
+        host=IP_CA_SRV,
+        port=PORT_CA_SRV,
+        ssl_context=None,  # TODO: enable ssl_ctx
+        threaded=True)
 
 
 if __name__ == '__main__':

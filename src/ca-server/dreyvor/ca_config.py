@@ -25,9 +25,9 @@ INTERMEDIATE_FOLDER = CERTIFICATES_PATH + 'intermediate/'
 INTERMEDIATE_CERT_PATH = INTERMEDIATE_FOLDER + 'inter.crt'  # file
 INTERMEDIATE_PRIVKEY_PATH = INTERMEDIATE_FOLDER + 'inter.pem'  # file
 
-ISSUED_PATH = CERTIFICATES_PATH + 'issued/'  # Path to a folder
-REVOKED_PATH = CERTIFICATES_PATH + 'revoked/'  # Path to a folder
-PRIVKEYS_PATH = HOME + 'keys/'  # Path to a folder
+ISSUED_FOLDER_NAME = 'issued/'  # Path to a folder
+REVOKED_FOLDER_NAME = 'revoked/'  # Path to a folder
+PRIVKEYS_FOLDER_NAME = 'keys/'  # Path to a folder
 
 LOG_PATH = HOME + 'ca-server.log'  # log of the ca-server (the path is the same as the code of the server)
 
