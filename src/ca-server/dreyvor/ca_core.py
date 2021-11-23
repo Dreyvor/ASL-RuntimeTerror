@@ -12,6 +12,7 @@ from OpenSSL.crypto import *
 
 from os import listdir
 from os.path import isfile, join
+from pathlib import Path
 
 # My files
 from ca_config import *
@@ -57,6 +58,18 @@ def save_key(key, file_path):
         pem_out.write(pem)
 
 
+def get_crl_from_file(crl_file_path):
+    crl_pem = read_file_bytes(crl_file_path)
+    return pem2crl(crl_pem)
+
+def save_crl(crl, file_path):
+    save_certificate(crl, file_path)
+
+
+def pem2crl(crl_pem):
+    return x509.load_pem_x509_crl(data=crl_pem, backend=default_backend())
+
+
 def gen_pkcs12_format_bytes(cert_path, key_path):
     # Generate a file that is ready to be written with "f=open(path, 'wb');f.write(data)"
     pkcs12 = PKCS12()
@@ -72,35 +85,58 @@ def gen_pkcs12_format_bytes(cert_path, key_path):
     return pkcs12.export()
 
 
+
+
 def get_cert_from_uid(uid):
     """
     Returns a certificate corresponding to the user id if there is some.
     None if none issued or already revoked
     """
     # Get all issued cert for a given uid
+    folder_name = get_curr_intermediate_ca_user()
+    folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + folder_name + '/'
+
+    # Return None if the intermediate cert has been revoked
+    crl_root = CRL()
+    _, crl_pem = crl_root.get_crl()
+    if is_revoked(get_cert_from_file(folder_path + folder_name + INTERMEDIATE_SUFFIX_CERT_NAME), crl_pem=crl_pem):
+        return None
+
+    issued_path = folder_path + ISSUED_FOLDER_NAME
+
     all_issued_certs_for_uid = [
-        c for c in listdir(ISSUED_PATH)
-        if (isfile(join(ISSUED_PATH, c)) and f.endswith('.pem') and (uid in c))
+        c for c in listdir(issued_path)
+        if (isfile(join(issued_path, c)) and f.endswith('.pem') and (uid in c))
     ]
 
     # Get all cert that has been revoked from the previous set
-    crl = CRL()  # create a CRL to check if a cert has been revoked
+    crl = CRL(folder_path=folder_path,
+        cert_path=folder_path+folder_name+INTERMEDIATE_SUFFIX_CERT_NAME,
+        private_key_path=ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + folder_name + INTERMEDIATE_SUFFIX_PRIVKEY_NAME)  # create a CRL to check if a cert has been revoked
     _, crl_pem = crl.get_crl()
 
     # Now mix the two results to extract the valid certs
     valid_certs = [
         c for c in all_issued_certs_for_uid
-        if not is_revoked(get_cert_from_file(ISSUED_PATH + c), crl_pem=crl_pem)
+        if not is_revoked(get_cert_from_file(issued_path + c), crl_pem=crl_pem)
     ]
 
     # if there exists a valid certificate, returns it
     if len(valid_certs) > 0:
-        cert = get_cert_from_file(ISSUED_PATH + valid_certs[0])
+        cert = get_cert_from_file(issued_path + valid_certs[0])
         return cert
 
     # else, return None
     return None
 
+def get_curr_intermediate_ca_user():
+    with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'w') as f:
+        name = f.read()
+    return name
+
+def set_curr_intermediate_ca_user(name):
+    with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'w') as f:
+        f.write(name)
 
 ### Create certificates ############################################
 
@@ -109,10 +145,10 @@ def gen_root_ca():
     private_key = gen_private_key(4096)
 
     subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, u"CH"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Zurich"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, u"Zurich"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"iMoviesRootCA"),
+        x509.NameAttribute(NameOID.COUNTRY_NAME, 'CH'),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'iMoviesRootCA'),
     ])
 
     root_certificate = x509.CertificateBuilder(
@@ -135,16 +171,25 @@ def gen_root_ca():
     #         serialization.NoEncryption()))
 
 
-def gen_intermediate_ca(root_cert, root_key):
+def gen_intermediate_ca(name, root_cert, root_key, init_phase=False):
+    # Create the intermediate folders in the root->issued folder
+    inter_folder = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + name + '/'
+    # Firstly, check if it exists and raise an exception if the folder already exists and we are not in the init_phase
+    if Path(inter_folder).is_dir() and not init_phase:
+        raise Exception('ERR: The intermediate certificate with name "' + name + '" already exists. Choose an other name.')
+
+    folders_to_create = [inter_folder+ISSUED_FOLDER_NAME, inter_folder+REVOKED_FOLDER_NAME, inter_folder+PRIVKEYS_FOLDER_NAME]
+    for need_to_exist in folders_to_create:
+        Path(need_to_exist).mkdir(parents=True, exist_ok=True)
+
     private_key = gen_private_key(4096)
 
     certificate = x509.CertificateBuilder().subject_name(
         x509.Name([
-            x509.NameAttribute(NameOID.COUNTRY_NAME, u"CH"),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME,
-                               u"iMoviesIntermediateCA"),
+            x509.NameAttribute(NameOID.COUNTRY_NAME, 'CH'),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, INTERMEDIATE_FOLDER_PREFIX + name),
         ])).issuer_name(root_cert.subject).public_key(
             private_key.public_key()).serial_number(
                 x509.random_serial_number()).not_valid_before(
@@ -160,20 +205,21 @@ def gen_intermediate_ca(root_cert, root_key):
 
 def gen_user_cert(user_id, user_surname, user_given_name, user_email,
                   issuer_cert, issuer_key):
+    # TODO: get issuer folder with inter_crt.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
     private_key = gen_private_key(2048)
 
     certificate = x509.CertificateBuilder().subject_name(
         x509.Name([
-            x509.NameAttribute(NameOID.COUNTRY_NAME, u"CH"),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"iMovies"),
-            x509.NameAttribute(NameOID.USER_ID, u"{}".format(user_id)),
-            x509.NameAttribute(NameOID.SURNAME, u"{}".format(user_last_name)),
+            x509.NameAttribute(NameOID.COUNTRY_NAME, 'CH'),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'iMovies'),
+            x509.NameAttribute(NameOID.USER_ID, u'{}'.format(user_id)),
+            x509.NameAttribute(NameOID.SURNAME, u'{}'.format(user_last_name)),
             x509.NameAttribute(NameOID.GIVEN_NAME,
-                               u"{}".format(user_first_name)),
+                               u'{}'.format(user_first_name)),
             x509.NameAttribute(NameOID.EMAIL_ADDRESS,
-                               u"{}".format(user_email)),
+                               u'{}'.format(user_email)),
         ])).issuer_name(issuer_cert.subject).public_key(
             private_key.public_key()).serial_number(
                 x509.random_serial_number()).not_valid_before(
@@ -190,14 +236,15 @@ def gen_user_cert(user_id, user_surname, user_given_name, user_email,
 
 
 def gen_TLS_cert(ip_addr, issuer_cert, issuer_key):
+    # TODO: get issuer folder with inter_crt.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
     private_key = gen_private_key(2048)
 
     certificate = x509.CertificateBuilder().subject_name(
         x509.Name([
-            x509.NameAttribute(NameOID.COUNTRY_NAME, u"CH"),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, u"Zurich"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"iMovies"),
+            x509.NameAttribute(NameOID.COUNTRY_NAME, 'CH'),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'iMovies'),
         ])).issuer_name(issuer_cert.subject).public_key(
             private_key.public_key()).serial_number(
                 x509.random_serial_number()).not_valid_before(
@@ -220,6 +267,11 @@ def gen_TLS_cert(ip_addr, issuer_cert, issuer_key):
 
 ### CRL #######################################################
 
+def revoke_cert(cert):
+    builder = x509.RevokedCertificateBuilder()
+    builder = builder.revocation_date(datetime.datetime.utcnow())
+    builder = builder.serial_number(cert.serial_number)
+    return builder.build(backend=default_backend())
 
 def gen_revocation_list(revoked_folder_path):
     return [
@@ -229,7 +281,8 @@ def gen_revocation_list(revoked_folder_path):
 
 
 class CRL:
-    def __init__(self, folder_path, cert_path, private_key_path):
+    def __init__(self, folder_path=ROOT_FOLDER, cert_path=ROOT_CERT_PATH, private_key_path=ROOT_PRIVKEY_PATH):
+        # Specify the parameters if it's different than root
         #super(CRL, self).__init__()
         self.folder_path = folder_path
         self.cert_path = cert_path
@@ -238,7 +291,7 @@ class CRL:
         self.revoked_certificates = gen_revocation_list(self.folder_path +
                                                         REVOKED_FOLDER_NAME)
 
-    def get_crl():
+    def get_crl(self):
         the_cert = get_cert_from_file(self.cert_path)
         the_key = get_key_from_file(self.private_key_path)
 
@@ -258,36 +311,20 @@ class CRL:
 
         return crl, crl.public_bytes(encoding=serialization.Encoding.PEM)
 
-    def update_crl():
+    def update_crl(self):
         return NotImplementedError
 
+    def get_revoked_certs_by_serial_number(self, serial_number):
+        # Get revoked serial numbers
+        revoked_serial_numbers = [rc.serial_number for rc in self.revoked_certificates]
+
+        # Check if the param is in the list
+        return (serial_number in revoked_serial_numbers)
 
 def is_revoked(certificate, crl_pem=None, crl_path=''):
-    return NotImplementedError
+    if crl_pem:
+        crl = pem2crl(crl_pem)
+    else:
+        crl = get_crl_from_file(crl_path)
 
-
-### MAIN ########################################################
-
-
-def main():
-    root_cert, root_key = gen_root_ca()
-    save_certificate(root_cert, ROOT_CERT_PATH)
-    save_key(root_key, ROOT_PRIVKEY_PATH)
-
-    inter_cert, inter_key = gen_intermediate_ca(root_cert, root_key)
-    save_certificate(inter_cert, INTERMEDIATE_CERT_PATH)
-    save_key(inter_key, INTERMEDIATE_PRIVKEY_PATH)
-
-    TLS_srv_cert, TLS_srv_key = gen_TLS_cert('127.0.0.1', inter_cert,
-                                             inter_key)
-    save_certificate(TLS_srv_cert, ISSUED_PATH + 'TLS_srv.crt')
-    save_key(TLS_srv_key, 'TLS_srv.pem')
-
-    TLS_cli_cert, TLS_cli_key = gen_TLS_cert('127.0.0.1', inter_cert,
-                                             inter_key)
-    save_certificate(TLS_cli_cert, ISSUED_PATH + 'TLS_cli.crt')
-    save_key(TLS_cli_key, PRIVKEYS_PATH + 'TLS_cli.pem')
-
-
-if __name__ == '__main__':
-    main()
+    return crl.get_revoked_certs_by_serial_number(certificate.serial_number)
