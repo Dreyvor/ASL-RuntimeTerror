@@ -135,8 +135,9 @@ def main():
     # Define access urls
 
     @app.route('/get_new_cert', methods=['POST'])
-    # TODO: don't forget to remove the created private key in the end
+    # TODO: don't forget to remove the created private key in the end after a delay to keep it in the backup server
     # TODO: send the certificate in PKCS12 format
+    # Check https://www.admin-enclave.com/en/articles/windows/422-how-to-create-a-pkcs12-file-with-a-ordered-certificate-chain.html
     def gen_new_cert():
         user_info = request.json
 
