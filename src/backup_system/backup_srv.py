@@ -124,6 +124,9 @@ def backup(conn, ip_addr):
     lock.acquire()
     backup_log.info('Lock acquired to write into: '+dest_path)
 
+    # TODO: Make sure that the path to the dest_path exists, by checking
+    #   the path without the filename and creating it if it does not
+
     try:
         with open(dest_path, 'wb') as f:
             data = conn.recv(BUFSIZE)
