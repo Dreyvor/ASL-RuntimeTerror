@@ -2,6 +2,7 @@ import datetime
 import ipaddress
 
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
@@ -182,6 +183,73 @@ def get_cert_and_key_path(cert):
     return cert_path, key_path
 
 
+def verify_certificate(cert_path, inter_folder_path=None):
+    # First, verify signatures
+    root_cert = get_cert_from_file(ROOT_CERT_PATH)
+    cert = get_cert_from_file(cert_path)
+    #curr_inter_folder_name = get_curr_intermediate_ca_user() # TODO: restore this line and delete next one
+    curr_inter_folder_name = 'TLS'
+    signature_verified = False
+   
+    if inter_folder_path is not None:
+        try:
+            inter_cert = get_cert_from_file(inter_folder_path+curr_inter_folder_name+INTERMEDIATE_SUFFIX_CERT_NAME) 
+            inter_cert.public_key().verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                cert.signature_hash_algorithm)
+
+            root_cert.public_key().verify(
+                inter_cert.signature,
+                inter_cert.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                inter_cert.signature_hash_algorithm)
+
+            signature_verified = True
+        except InvalidSignature:
+            return False
+    else:
+        try:
+            root_cert.public_key().verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                cert.signature_hash_algorithm)
+            signature_verified=True
+        except InvalidSignature:
+            return False
+
+    # Check that the certificate has been revoked
+    revoked = True
+    if inter_folder_path is not None:
+        # Check if issued cert is revoked
+        inter_cert_path = inter_folder_path+curr_inter_folder_name+INTERMEDIATE_SUFFIX_CERT_NAME
+        crl = CRL(folder_path=inter_folder_path,
+            cert_path=inter_cert_path,
+            private_key_path=ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + curr_inter_folder_name + INTERMEDIATE_SUFFIX_PRIVKEY_NAME)
+        _, crl_pem = crl.get_crl()
+        cert_revoked = is_revoked(cert, crl_pem=crl_pem)
+
+        # Check if inter is revoked
+        crl = CRL(folder_path=ROOT_FOLDER,
+            cert_path=ROOT_CERT_PATH,
+            private_key_path=ROOT_PRIVKEY_PATH)
+        _, crl_pem = crl.get_crl()
+        inter_cert_revoked = is_revoked(get_cert_from_file(inter_cert_path), crl_pem=crl_pem)
+
+        revoked = cert_revoked or inter_cert_revoked
+    else:
+        crl = CRL(folder_path=ROOT_FOLDER,
+            cert_path=ROOT_CERT_PATH,
+            private_key_path=ROOT_PRIVKEY_PATH)
+        _, crl_pem = crl.get_crl()
+        inter_cert_revoked = is_revoked(cert, crl_pem=crl_pem)
+
+        revoked = False
+
+    return signature_verified and (not revoked)
+
 ### Create certificates ############################################
 
 
@@ -355,15 +423,21 @@ class CRL:
 
         return crl, crl.public_bytes(encoding=serialization.Encoding.PEM)
 
-    def update_crl(self):
-        return NotImplementedError
+    def update_crl(self, cert_to_revoke):
+        cert_name,_ = get_cert_and_key_names(cert_to_revoke)
+        save_certificate(cert_to_revoke, self.folder_path + REVOKED_FOLDER_NAME + cert_name)
+        self.revoked_certificates.append(revoke_cert(cert_to_revoke))
+        crl, crl_pem = self.get_crl()
+        save_crl(crl, self.folder_path + CRL_NAME)
 
-    def get_revoked_certs_by_serial_number(self, serial_number):
-        # Get revoked serial numbers
-        revoked_serial_numbers = [rc.serial_number for rc in self.revoked_certificates]
+        return crl, crl_pem
 
-        # Check if the param is in the list
-        return (serial_number in revoked_serial_numbers)
+    # def get_revoked_certs_by_serial_number(self, serial_number):
+    #     # Get revoked serial numbers
+    #     revoked_serial_numbers = [rc.serial_number for rc in self.revoked_certificates]
+
+    #     # Check if the param is in the list
+    #     return (serial_number in revoked_serial_numbers)
 
 def is_revoked(certificate, crl_pem=None, crl_path=''):
     if crl_pem:
@@ -371,4 +445,4 @@ def is_revoked(certificate, crl_pem=None, crl_path=''):
     else:
         crl = get_crl_from_file(crl_path)
 
-    return crl.get_revoked_certs_by_serial_number(certificate.serial_number)
+    return crl.get_revoked_certificate_by_serial_number(certificate.serial_number)

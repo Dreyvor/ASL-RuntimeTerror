@@ -277,16 +277,39 @@ def main():
     @app.route('/verify', methods=['POST'])
     def verify_cert():
         # data required: the certificate to verify
-        return NotImplementedError
+        
+        # Receive the cert to verify and store it temporarly
+        cert = request.get_data()
+        tmp_name = '/tmp/tmp_verification.crt'
+        with open(tmp_name, 'wb') as f:
+            f.write(cert)
+
+        # Verify the certificate
+        curr_inter_folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + get_curr_intermediate_ca_user() + '/'
+        return verify_certificate(tmp_name, curr_inter_folder_path, ROOT_FOLDER)
 
     @app.route('/revoke', methods=['POST'])
     def revoke_cert():
         uid = request.json['uid']
-        return NotImplementedError
+        cert = get_cert_from_uid(uid)
+        if cert is not None:
+            curr_inter_ca_user = get_curr_intermediate_ca_user()
+            curr_inter_folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + curr_inter_ca_user + '/'
+            crl = CRL(folder_path=curr_inter_folder_path,
+                cert_path=curr_inter_folder_path+curr_inter_ca_user+INTERMEDIATE_SUFFIX_CERT_NAME,
+                private_key_path=ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + curr_inter_ca_user + INTERMEDIATE_SUFFIX_PRIVKEY_NAME)
+            crl.update(cert)
+            increase_revoked_counter()
+
+            # Read crl and return the new crl
+            with open(curr_inter_folder_path + CRL_NAME, 'r') as crl_f:
+                data = crl_f.read()
+
+            return data
 
     @app.route('/get_stats', methods=['GET'])
     def get_stats():
-        return NotImplementedError
+        
 
     # @app.route('/favicon.ico')
     # def favicon():

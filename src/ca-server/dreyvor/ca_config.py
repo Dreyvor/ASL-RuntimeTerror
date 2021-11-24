@@ -60,6 +60,7 @@ CA_STAT_PATH = HOME + 'admin_stats/'  # path to a folder
 ISSUED_COUNTER = CA_STAT_PATH + 'issued.txt'  # file
 REVOKED_COUNTER = CA_STAT_PATH + 'revoked.txt'  # file
 SERIAL_NUMBER = CA_STAT_PATH + 'serial_number.txt'  # file
+CRL_NAME = 'crl.pem' # file name
 
 TLS_CERTS_NEEDED = [
     (TLS_CA_SRV_NAME, TLS_CA_SRV_IP),
