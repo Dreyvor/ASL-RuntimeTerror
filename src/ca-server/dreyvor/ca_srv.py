@@ -309,6 +309,12 @@ def main():
 
     @app.route('/get_stats', methods=['GET'])
     def get_stats():
+        stats = {
+            'issued': get_issued_counter(),
+            'revoked': get_revoked_counter(),
+            'serial_number': get_serial_number()
+        }
+        return stats
         
 
     # @app.route('/favicon.ico')
