@@ -1,13 +1,22 @@
 import ssl
 import logging
+import time
+
+from os import remove
 from pathlib import Path
+from threading import Thread, Lock
 from flask import Flask, request, send_from_directory
+
 
 # My files
 from ca_core import *
 from ca_config import *
 
-### SSL Context ##########################################
+
+### MISC #################################################
+
+lock = Lock()
+
 
 ### FUNCTIONS ############################################
 
@@ -113,6 +122,93 @@ def init_ca_server(logger):
                 with open(fname) as infile:
                     outfile.write(infile.read())
 
+
+def set_serial_number(nmb):
+    lock.acquire()
+    try:
+        with open(SERIAL_NUMBER, 'w') as f:
+            f.write(str(nmb))
+
+    finally:
+        lock.release()
+
+
+def increase_issued_counter():
+    lock.acquire()
+
+    try:
+        with open(ISSUED_COUNTER, 'r') as f:
+            cnt = int(f.readline())
+
+        with open(ISSUED_COUNTER, 'w') as f:
+            f.write(str(cnt+1))
+    finally:
+        lock.release()
+
+
+def increase_revoked_counter():
+    lock.acquire()
+
+    try:
+        with open(REVOKED_COUNTER, 'r') as f:
+            cnt = int(f.readline())
+
+        with open(REVOKED_COUNTER, 'w') as f:
+            f.write(str(cnt+1))
+    finally:
+        lock.release()
+
+def get_issued_counter():
+    try:
+        with open(ISSUED_COUNTER, 'r') as f:
+            counter = int(f.readline())
+        return counter
+    except:
+        return -1
+
+
+def get_revoked_counter():
+    try:
+        with open(REVOKED_COUNTER, 'r') as f:
+            counter = int(f.readline())
+        return counter
+    except:
+        return -1
+
+
+def get_serial_number():
+    try:
+        with open(SERIAL_NUMBER, 'r') as f:
+            data = f.read(1024)
+            if data.isnumeric():
+                return int(data)
+            else:
+                return -2
+    except:
+        return -1
+
+def delete_privkey(key_path):
+    if '/keys/' in key_path:
+        # Only do something if it's locater in a folder keys somewhere
+        lock.acquire()
+        try:
+            remove(key_path)
+        finally:
+            lock.release()
+
+### CLASSES ##############################################
+
+class DelayedRemovingThread(Thread):
+    def __init__(self, time, path):
+        super(Thread, self).__init__()
+        self.time = time
+        self.path = path
+
+    def run(self):
+        time.sleep(self.time)
+        delete_privkey(self.path)
+        return
+
 ### MAIN #################################################
 
 
@@ -139,14 +235,53 @@ def main():
     # TODO: send the certificate in PKCS12 format
     # Check https://www.admin-enclave.com/en/articles/windows/422-how-to-create-a-pkcs12-file-with-a-ordered-certificate-chain.html
     def gen_new_cert():
+        # Get user data from the posted json
+        # user_info: `uid`, `first_name`, `last_name`, `mail_address`
         user_info = request.json
+
+        # Check if not already issued or has been revoked (none valid), else we can issue a new one
+        cert = get_cert_from_uid(user_info['uid'])
+        if cert is not None:
+            # already issued
+            return 'ALREADY_ISSUED'
+
+        # Create a new cert
+        current_user_inter = get_curr_intermediate_ca_user()
+        curr_user_inter_cert_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + current_user_inter + '/' + current_user_inter + INTERMEDIATE_SUFFIX_CERT_NAME
+        curr_user_inter_cert = get_cert_from_file(curr_user_inter_cert_path)
+        curr_user_inter_key_path = ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + current_user_inter + INTERMEDIATE_SUFFIX_PRIVKEY_NAME
+        curr_user_inter_key = get_key_from_file(curr_user_inter_key_path)
+        cert, private_key = gen_user_cert(user_info['uid'], user_info['last_name'], user_info['first_name'], user_info['mail_address'], curr_user_inter_cert, curr_user_inter_key)
+
+        # Save the cert and the key
+        cert_path, key_path = get_cert_and_key_path(cert)
+        save_certificate(cert, cert_path)
+        save_key(private_key, key_path)
+
+        set_serial_number(cert.serial_number)
+
+        cert_chain = [cert_path, curr_user_inter_cert_path, ROOT_CERT_PATH]
+
+        pkcs12_cert = gen_pkcs12(cert_chain, key_path)
+        
+        # Increase issued counter
+        increase_issued_counter()
+
+        # Delete the issued private key after 10 seconds
+        t = DelayedRemovingThread(10, key_path)
+        t.start()
+
+        return pkcs12_cert
+
 
     @app.route('/verify', methods=['POST'])
     def verify_cert():
+        # data required: the certificate to verify
         return NotImplementedError
 
     @app.route('/revoke', methods=['POST'])
     def revoke_cert():
+        uid = request.json['uid']
         return NotImplementedError
 
     @app.route('/get_stats', methods=['GET'])

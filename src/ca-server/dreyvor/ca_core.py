@@ -6,7 +6,7 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.primitives.serialization import load_pem_private_key, pkcs12, NoEncryption
 
 from OpenSSL.crypto import *
 
@@ -70,20 +70,37 @@ def pem2crl(crl_pem):
     return x509.load_pem_x509_crl(data=crl_pem, backend=default_backend())
 
 
-def gen_pkcs12_format_bytes(cert_path, key_path):
+def gen_pkcs12(certs_chain_PATHS, key_path):
     # Generate a file that is ready to be written with "f=open(path, 'wb');f.write(data)"
+
+    # TODO: check if we can do something for the PEM passphrase: "None"
+    # serialized_pkcs12 = pkcs12.serialize_key_and_certificates(
+    #     name=get_certificate_attribute_value(certs_chain_PATHS[0], NameOID.USER_ID),
+    #     key=key_path,
+    #     cert=certs_chain_PATHS[0],
+    #     cas=certs_chain_PATHS[1:],
+    #     encryption_algorithm=NoEncryption)
+    # return serialized_pkcs12
+
     pkcs12 = PKCS12()
 
-    with open(cert_path, "r") as cert_file:
-        cert = load_certificate(FILETYPE_PEM, cert_file.read())
-        pkcs12.set_certificate(cert)
-
-    with open(key_path, "r") as key_file:
-        key = load_privatekey(FILETYPE_PEM, key_file.read())
+    with open(key_path, 'r') as key_file:
+        key = load_privatekey(FILETYPE_PEM,key_file.read())
         pkcs12.set_privatekey(key)
 
-    return pkcs12.export()
+    with open(certs_chain_PATHS[0], 'r') as cert_file:
+        user_cert = load_certificate(FILETYPE_PEM, cert_file.read())
+        pkcs12.set_certificate(user_cert)
 
+    ca_certs=[]
+    for ca_path in certs_chain_PATHS[1:]:
+        with open(ca_path, 'r') as ca_file:
+            ca_cert = load_certificate(FILETYPE_PEM, ca_file.read())
+        ca_certs.append(ca_cert)
+
+    pkcs12.set_ca_certificates(ca_certs)
+
+    return pkcs12.export()
 
 
 
@@ -130,13 +147,40 @@ def get_cert_from_uid(uid):
     return None
 
 def get_curr_intermediate_ca_user():
-    with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'w') as f:
+    with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'r') as f:
         name = f.read()
     return name
 
 def set_curr_intermediate_ca_user(name):
     with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'w') as f:
         f.write(name)
+
+def get_certificate_attribute_value(cert, oid):
+    try:
+        res = cert.subject.get_attributes_for_oid(oid)[0].value
+        return res
+    except:
+        return None
+
+def get_cert_and_key_names(cert):
+    name = f"{get_certificate_attribute_value(cert, NameOID.USER_ID)}_{cert.serial_number}"
+    return name+'.crt', name+'.pem'
+
+def get_cert_and_key_path(cert):
+    cert_issuer = cert.issuer.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
+    cert_name, key_name = get_cert_and_key_names(cert)
+
+    if cert_issuer == ROOT_ORGANIZATION_NAME:
+        cert_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + cert_name
+        key_path = ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + key_name
+    else:
+        extracted_issuer_name = cert_issuer[len(INTERMEDIATE_FOLDER_PREFIX):]
+        issuer_folder = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + extracted_issuer_name + '/'
+        cert_path = issuer_folder + ISSUED_FOLDER_NAME + cert_name
+        key_path = issuer_folder + PRIVKEYS_FOLDER_NAME + key_name
+
+    return cert_path, key_path
+
 
 ### Create certificates ############################################
 
@@ -148,7 +192,7 @@ def gen_root_ca():
         x509.NameAttribute(NameOID.COUNTRY_NAME, 'CH'),
         x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
         x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'iMoviesRootCA'),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, ROOT_ORGANIZATION_NAME),
     ])
 
     root_certificate = x509.CertificateBuilder(

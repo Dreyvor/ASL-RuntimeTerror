@@ -34,6 +34,7 @@ CERTIFICATES_PATH = HOME + 'certificates/'
 ROOT_FOLDER = CERTIFICATES_PATH + 'root/'
 ROOT_CERT_PATH = ROOT_FOLDER + 'root.crt'  # file
 ROOT_PRIVKEY_PATH = ROOT_FOLDER + 'root.pem'  # file
+ROOT_ORGANIZATION_NAME = 'iMoviesRootCA'
 
 # TLS
 TLS_FOLDER_NAME = 'TLS'
