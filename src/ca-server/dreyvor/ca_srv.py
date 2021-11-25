@@ -118,11 +118,24 @@ def init_ca_server(logger):
 
         # Generate TLS certificate chain to verify identity
         file_paths_for_CA_chain = [cert_path, INTERMEDIATE_TLS_CERT_PATH, ROOT_CERT_PATH]
-        with open(INTERMEDIATE_TLS_FOLDER + ISSUED_FOLDER_NAME + srv_name + SUFFIX_CERT_CHAIN_NAME, 'w') as outfile:
-            for fname in file_paths_for_CA_chain:
-                with open(fname) as infile:
-                    outfile.write(infile.read())
+        output_path = INTERMEDIATE_TLS_FOLDER + ISSUED_FOLDER_NAME + srv_name + SUFFIX_CERT_CHAIN_NAME
+        gen_ca_chain_and_save(file_paths_for_CA_chain, output_path)
 
+    # Generate the admin certificate that will have admin access to the web server
+    admin_cert, admin_priv_key = gen_user_cert('admin', 'Admynis', 'Traitor', 'admin@webserver.com', inter_user_cert, inter_user_key)
+    cert_path, key_path = get_cert_and_key_path(admin_cert)
+    save_certificate(admin_cert, cert_path)
+    save_key(admin_priv_key, key_path)
+
+    # Generate ca Chain for admin
+    gen_ca_chain_and_save([cert_path, INTERMEDIATE_USER_CERT_PATH, ROOT_CERT_PATH], cert_path[:-4] + SUFFIX_CERT_CHAIN_NAME)
+
+    # Create the stats files if they don't exist
+    stat_paths = [ISSUED_COUNTER, REVOKED_COUNTER, SERIAL_NUMBER]
+    for path in stat_paths:
+        if not (Path(path).is_file() and not Path(path).is_symlink()):
+            with open(path,'w') as f:
+                f.write(str(0))
 
 def set_serial_number(nmb):
     lock.acquire()
@@ -345,24 +358,6 @@ def main():
             'serial_number': get_serial_number()
         }
         return stats
-
-        
-
-    # TODO: Create a new REST API for: /authenticate_by_certificate as POST with params: uid, challenge, signed_challenge
-    #   It checks that the signed challenge has been signed witht the private key of the user coresponding with the uid.
-    #   Also checking that the certificate is valid.
-
-    # TODO: Create a admin certificate that will be used to authenticate on the web server as admin. its uid will be: 'admin'
-
-    # TODO: Create a steganographic image and stores it on the web server. as a backdoor
-
-    # TODO: install webserver's TLS certificate on the client browser to allow them to communicate with a simple browser through TLS
-    # TODO: Create a README on the client to expliain interact with our system
-    # TODO: generate two TLS certificates for the webserver (backup + TLS connection with user)
-    
-    # TODO: Put the whole system together and test everything
-
-    # TODO: Report
 
     # @app.route('/favicon.ico')
     # def favicon():

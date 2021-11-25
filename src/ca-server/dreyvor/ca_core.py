@@ -256,6 +256,12 @@ def verify_certificate(cert_path, inter_folder_path=None):
 
     return signature_verified and (not revoked) and date_valid
 
+def gen_ca_chain_and_save (paths_list, output_file_name):
+    with open(output_file_name, 'w') as outfile:
+        for fname in paths_list:
+            with open(fname, 'r') as infile:
+                outfile.write(infile.read())
+
 ### Create certificates ############################################
 
 
@@ -321,7 +327,7 @@ def gen_intermediate_ca(name, root_cert, root_key, init_phase=False):
     return certificate, private_key
 
 
-def gen_user_cert(user_id, user_surname, user_given_name, user_email,
+def gen_user_cert(user_id, user_last_name, user_first_name, user_email,
                   issuer_cert, issuer_key):
     # TODO: get issuer folder with inter_crt.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
     private_key = gen_private_key(2048)
