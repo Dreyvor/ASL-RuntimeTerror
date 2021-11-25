@@ -184,9 +184,15 @@ def get_cert_and_key_path(cert):
 
 
 def verify_certificate(cert_path, inter_folder_path=None):
-    # First, verify signatures
-    root_cert = get_cert_from_file(ROOT_CERT_PATH)
     cert = get_cert_from_file(cert_path)
+
+    # First verify the expiration date
+    date_valid = False
+    if not(datetime.datetime.utcnow() < cert.not_valid_before or cert.not_valid_after < datetime.datetime.utcnow()):
+        date_valid = True
+
+    # Secondly, verify signatures
+    root_cert = get_cert_from_file(ROOT_CERT_PATH)
     #curr_inter_folder_name = get_curr_intermediate_ca_user() # TODO: restore this line and delete next one
     curr_inter_folder_name = 'TLS'
     signature_verified = False
@@ -220,7 +226,7 @@ def verify_certificate(cert_path, inter_folder_path=None):
         except InvalidSignature:
             return False
 
-    # Check that the certificate has been revoked
+    # Check that the certificate has not been revoked
     revoked = True
     if inter_folder_path is not None:
         # Check if issued cert is revoked
@@ -248,7 +254,7 @@ def verify_certificate(cert_path, inter_folder_path=None):
 
         revoked = False
 
-    return signature_verified and (not revoked)
+    return signature_verified and (not revoked) and date_valid
 
 ### Create certificates ############################################
 

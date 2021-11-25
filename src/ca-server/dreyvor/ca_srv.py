@@ -6,6 +6,7 @@ from os import remove
 from pathlib import Path
 from threading import Thread, Lock
 from flask import Flask, request, send_from_directory
+from  OpenSSL import crypto
 
 
 # My files
@@ -273,20 +274,49 @@ def main():
 
         return pkcs12_cert
 
-
-    @app.route('/verify', methods=['POST'])
-    def verify_cert():
-        # data required: the certificate to verify
+    # It receives a user certificate nad verifies it.
+    # @app.route('/verify', methods=['POST'])
+    # def verify_cert():
+    #     # data required: the certificate to verify
         
-        # Receive the cert to verify and store it temporarly
-        cert = request.get_data()
-        tmp_name = '/tmp/tmp_verification.crt'
-        with open(tmp_name, 'wb') as f:
-            f.write(cert)
+    #     # Receive the cert to verify and store it temporarly
+    #     cert = request.get_data()
+    #     tmp_name = '/tmp/tmp_verification.crt'
+    #     with open(tmp_name, 'wb') as f:
+    #         f.write(cert)
 
-        # Verify the certificate
+    #     # Verify the certificate
+    #     curr_inter_folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + get_curr_intermediate_ca_user() + '/'
+    #     return verify_certificate(tmp_name, curr_inter_folder_path)
+
+
+    @app.route('/authenticate_by_certificate', methods=['POST'])
+    def auth_by_cert():
+        # data required: a uid, a challenge and a signed challenge that we will compare with
+        
+        # Receive the data to verify
+        uid = request.json['uid']
+        challenge = request.json['challenge']
+        signed_challenge = request.json['signed_challenge']
+
+        cert = get_cert_from_uid(uid)
+        if cert is None:
+            return False
+
+        public_key = cert.public_key()
+        
+        # Verify the challenge
+        try:
+            crypto.verify(cert, signed_challenge, challenge, 'sha256')
+        except crypto.Error:
+            return False
+
+        # Verify certificate validity
+
         curr_inter_folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + get_curr_intermediate_ca_user() + '/'
-        return verify_certificate(tmp_name, curr_inter_folder_path, ROOT_FOLDER)
+        cert_path, _ = get_cert_and_key_path(cert)
+        return verify_certificate(cert_path, curr_inter_folder_path)
+
 
     @app.route('/revoke', methods=['POST'])
     def revoke_cert():
@@ -315,7 +345,24 @@ def main():
             'serial_number': get_serial_number()
         }
         return stats
+
         
+
+    # TODO: Create a new REST API for: /authenticate_by_certificate as POST with params: uid, challenge, signed_challenge
+    #   It checks that the signed challenge has been signed witht the private key of the user coresponding with the uid.
+    #   Also checking that the certificate is valid.
+
+    # TODO: Create a admin certificate that will be used to authenticate on the web server as admin. its uid will be: 'admin'
+
+    # TODO: Create a steganographic image and stores it on the web server. as a backdoor
+
+    # TODO: install webserver's TLS certificate on the client browser to allow them to communicate with a simple browser through TLS
+    # TODO: Create a README on the client to expliain interact with our system
+    # TODO: generate two TLS certificates for the webserver (backup + TLS connection with user)
+    
+    # TODO: Put the whole system together and test everything
+
+    # TODO: Report
 
     # @app.route('/favicon.ico')
     # def favicon():
