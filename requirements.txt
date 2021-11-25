@@ -1,3 +1,3 @@
 Flask
-ownca
 requests
+Flask-MySQLdb

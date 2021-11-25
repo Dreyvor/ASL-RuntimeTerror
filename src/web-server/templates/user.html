@@ -1,0 +1,34 @@
+{% extends 'main.html' %}
+
+{% block header %}
+<h1>{% block title %}User information{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<h2>Update Information</h2>
+<form action="{{ url_for('user_data') }}" method="post">
+    <label for="username">Username</label>
+    <input name="username" id="username" value="{{user.uid}}" readonly>
+    <label for="firstname">Firstname</label>
+    <input name="firstname" id="firstname" value="{{user.firstname}}">
+    <label for="lastname">Lastname</label>
+    <input name="lastname" id="lastname" value="{{user.lastname}}">
+    <label for="email">Email</label>
+    <input type="email" name="email" id="email" value="{{user.email}}">
+    <label for="password">Password</label>
+    <input type="password" name="password" id="password">
+    <input onclick="hashPassword()" type="submit" value="Update information">
+</form>
+
+<h2>Get new Certificate</h2>
+<p>In order to request a new certificate, you must confirm your password.</p>
+<form action="{{ url_for('issue_certificate') }}" method="post">
+    <input type="submit" value="Send request to get new certificate">
+</form>
+
+<h2>Revoke Certificate</h2>
+<form action="{{ url_for('revoke_certificate') }}" method="post">
+    <input type="submit" value="Send request to revoke current certificate">
+</form>
+
+{% endblock %}

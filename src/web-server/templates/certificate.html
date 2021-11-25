@@ -1,0 +1,24 @@
+{% extends 'main.html' %}
+
+{% block header %}
+<h1>{% block title %}Certificate Login{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<h2>Please select the PKCS#12 file</h2>
+<form method=post enctype=multipart/form-data>
+    <label for="username">Username</label>
+    <input name="username" id="username" required>
+    <input type=hidden name="challenge" id="challenge" value="{{challenge}}">
+    <input type=hidden name="certificate" id="certificate">
+    <input type=file id="file" name=file>
+    <input onclick="computeResponse()" type=submit value=Login>
+</form>
+
+<script>
+    const form = document.querySelector('form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+    });
+</script>
+{% endblock %}
