@@ -366,9 +366,13 @@ def main():
 
     # @app.route('/favicon.ico')
     # def favicon():
+    #     # return send_from_directory(HOME,
+    #     #                            'favicon.ico',
+    #     #                            mimetype='image/vnd.microsoft.icon')
     #     return send_from_directory(HOME,
-    #                                'favicon.ico',
-    #                                mimetype='image/vnd.microsoft.icon')
+    #                                'favicon.jpg',
+    #                                mimetype='image/jpeg')
+
 
     app.run(
         host=IP_CA_SRV,
