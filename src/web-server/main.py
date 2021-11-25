@@ -244,5 +244,5 @@ if __name__ == '__main__':
     ssl_ctx.verify_mode = ssl.CERT_REQUIRED
     ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
-    app.run(host="192.168.10.30", port=443, ssl_context=None, threaded=True)
-    # app.run(host="192.168.10.30", port=443, ssl_context=ssl_ctx, threaded=True)
+    app.run(host="192.168.20.10", port=80, ssl_context=None, threaded=True)
+    # app.run(host="192.168.20.10", port=443, ssl_context=ssl_ctx, threaded=True)
