@@ -1,3 +1,4 @@
 pycryptodome
 Flask
-ownca
+requests
+Flask-MySQLdb
