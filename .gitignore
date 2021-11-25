@@ -1,4 +1,5 @@
 ASL.sublime-*
+__pycache__/
+personal_notes.md
 .idea/
 *-ca-storage
-__pycache__
