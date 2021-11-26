@@ -1,6 +1,6 @@
 ### Network ###
-#IP_CA_SRV = '192.168.10.10'
-IP_CA_SRV = '127.0.0.1'  # TODO: change this ip for the one of the ca-server
+IP_CA_SRV = '192.168.10.10'
+#IP_CA_SRV = '127.0.0.1'  # TODO: change this ip for the one of the ca-server
 PORT_CA_SRV = 8080
 
 ### Certificates validity ###
@@ -25,8 +25,8 @@ PRIVKEYS_FOLDER_NAME = 'keys/'  # a folder's name
 
 ### Paths ###
 # TODO: change home folder
-# HOME = '/home/ca-server/'
-HOME = '/home/brad/Documents/EPFL/SYSCOM/MA04-ETHZ/Applied_security_laboratory/project/runtime_terror/src/ca-server/dreyvor/simulated_home_folder/'
+HOME = '/home/ca-server/'
+#HOME = '/home/brad/Documents/EPFL/SYSCOM/MA04-ETHZ/Applied_security_laboratory/project/runtime_terror/src/ca-server/dreyvor/simulated_home_folder/'
 
 CERTIFICATES_PATH = HOME + 'certificates/'
 
