@@ -202,8 +202,8 @@ def issue_cert():
         flash("You already have a certificate. Revoke your current certificate before requesting the new.")
     else:
         flash("Certificate received, downloading...")
-        with open(user['uid'] + "-cert", 'w') as f:
-            f.write(ca_response.raw)
+        with open(user['uid'] + "-cert", 'wb') as f:
+            f.write(ca_response.content)
         return send_file(user['uid'] + "-cert", as_attachment=True)
 
 

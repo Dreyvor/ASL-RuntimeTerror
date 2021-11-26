@@ -214,7 +214,7 @@ def delete_privkey(key_path):
 
 class DelayedRemovingThread(Thread):
     def __init__(self, time, path):
-        super(Thread, self).__init__()
+        Thread.__init__(self)
         self.time = time
         self.path = path
 
@@ -251,7 +251,7 @@ def main():
     def gen_new_cert():
         # Get user data from the posted json
         # user_info: `uid`, `first_name`, `last_name`, `mail_address`
-        user_info = request.json
+        user_info = request.get_json()
 
         # Check if not already issued or has been revoked (none valid), else we can issue a new one
         cert = get_cert_from_uid(user_info['uid'])
@@ -312,9 +312,9 @@ def main():
         challenge = request.json['challenge']
         signed_challenge = request.json['signed_challenge']
 
-        cert = get_cert_from_uid(uid)
+        cert = get_cert_from_uid(uid) # Cannot retrieve cert
         if cert is None:
-            return False
+            return 'False'
 
         public_key = cert.public_key()
         
@@ -322,7 +322,7 @@ def main():
         try:
             crypto.verify(cert, signed_challenge, challenge, 'sha256')
         except crypto.Error:
-            return False
+            return 'False'
 
         # Verify certificate validity
 
@@ -372,7 +372,7 @@ def main():
     app.run(
         host=IP_CA_SRV,
         port=PORT_CA_SRV,
-        ssl_context=None,  # TODO: enable ssl_ctx
+        ssl_context=ssl_ctx,  # TODO: enable ssl_ctx
         threaded=True)
 
 

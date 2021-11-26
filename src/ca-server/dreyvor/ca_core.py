@@ -124,7 +124,7 @@ def get_cert_from_uid(uid):
 
     all_issued_certs_for_uid = [
         c for c in listdir(issued_path)
-        if (isfile(join(issued_path, c)) and f.endswith('.pem') and (uid in c))
+        if (isfile(join(issued_path, c)) and c.endswith('.pem') and (uid in c))
     ]
 
     # Get all cert that has been revoked from the previous set
