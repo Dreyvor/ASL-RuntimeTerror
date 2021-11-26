@@ -25,7 +25,7 @@ PRIVKEYS_FOLDER_NAME = 'keys/'  # a folder's name
 
 ### Paths ###
 # TODO: change home folder
-HOME = '/home/ca-server/'
+HOME = '/home/ca-server/Documents/'
 #HOME = '/home/brad/Documents/EPFL/SYSCOM/MA04-ETHZ/Applied_security_laboratory/project/runtime_terror/src/ca-server/dreyvor/simulated_home_folder/'
 
 CERTIFICATES_PATH = HOME + 'certificates/'
