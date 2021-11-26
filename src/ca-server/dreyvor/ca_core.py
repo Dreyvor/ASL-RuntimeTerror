@@ -112,7 +112,7 @@ def get_cert_from_uid(uid):
     """
     # Get all issued cert for a given uid
     folder_name = get_curr_intermediate_ca_user()
-    folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + folder_name + '/'
+    folder_path = get_curr_intermediate_ca_user_folder_path()
 
     # Return None if the intermediate cert has been revoked
     crl_root = CRL()
@@ -122,9 +122,10 @@ def get_cert_from_uid(uid):
 
     issued_path = folder_path + ISSUED_FOLDER_NAME
 
+
     all_issued_certs_for_uid = [
         c for c in listdir(issued_path)
-        if (isfile(join(issued_path, c)) and c.endswith('.pem') and (uid in c))
+        if (isfile(join(issued_path, c)) and c.endswith('.crt') and SUFFIX_CERT_CHAIN_NAME not in c and (uid in c))
     ]
 
     # Get all cert that has been revoked from the previous set
@@ -148,9 +149,16 @@ def get_cert_from_uid(uid):
     return None
 
 def get_curr_intermediate_ca_user():
-    with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'r') as f:
-        name = f.read()
+    try:
+        with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'r') as f:
+            name = f.read()
+    except:
+        name = USER_FOLDER_NAME
     return name
+
+def get_curr_intermediate_ca_user_folder_path():
+    curr_name = get_curr_intermediate_ca_user()
+    return ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + curr_name + '/'
 
 def set_curr_intermediate_ca_user(name):
     with open(CURRENT_USER_INTERMEDIATE_NAME_FILE_PATH, 'w') as f:
@@ -193,8 +201,7 @@ def verify_certificate(cert_path, inter_folder_path=None):
 
     # Secondly, verify signatures
     root_cert = get_cert_from_file(ROOT_CERT_PATH)
-    #curr_inter_folder_name = get_curr_intermediate_ca_user() # TODO: restore this line and delete next one
-    curr_inter_folder_name = 'TLS'
+    curr_inter_folder_name = get_curr_intermediate_ca_user()
     signature_verified = False
    
     if inter_folder_path is not None:
@@ -424,7 +431,6 @@ class CRL:
                 datetime.datetime.utcnow() +
                 datetime.timedelta(1, 0, 0)).issuer_name(the_cert.subject)
 
-        # TODO: check if the intermediate cert is not revoked by root
         if self.revoked_certificates:
             for revoked_cert in self.revoked_certificates:
                 CRL_builder.add_revoked_certificate(revoked_cert)

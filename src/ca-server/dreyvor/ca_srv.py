@@ -78,27 +78,34 @@ def init_ca_server(logger):
 
     # INTERMEDIATE_USER
     inter_user_already_existant = False
+    curr_inter_user_name = get_curr_intermediate_ca_user()
+    curr_inter_user_folder = get_curr_intermediate_ca_user_folder_path()
+    curr_inter_user_cert_path = curr_inter_user_folder + curr_inter_user_name + INTERMEDIATE_SUFFIX_CERT_NAME
+    curr_inter_user_key_path = ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + curr_inter_user_name + INTERMEDIATE_SUFFIX_PRIVKEY_NAME
     if root_already_existant:
         try:
-            inter_user_cert = get_cert_from_file(INTERMEDIATE_USER_CERT_PATH)
-            inter_user_key = get_key_from_file(INTERMEDIATE_USER_PRIVKEY_PATH)
+            inter_user_cert = get_cert_from_file(curr_inter_user_cert_path)
+            inter_user_key = get_key_from_file(curr_inter_user_key_path)
             inter_user_already_existant = True
         except Exception as e:
             logger.info(
                 '!!! WARNING !!!\nINTERMEDIATE USER CERTIFICATE NON-EXISTENT, WE CREATE A NEW ONE'
                 + ' ' + str(e))
-            inter_user_cert, inter_user_key = gen_intermediate_ca(USER_FOLDER_NAME, root_cert, root_key, init_phase=True)
-            save_certificate(inter_user_cert, INTERMEDIATE_USER_CERT_PATH)
-            save_key(inter_user_key, INTERMEDIATE_USER_PRIVKEY_PATH)
+            inter_user_cert, inter_user_key = gen_intermediate_ca(curr_inter_user_name, root_cert, root_key, init_phase=True)
+            save_certificate(inter_user_cert, curr_inter_user_cert_path)
+            save_key(inter_user_key, curr_inter_user_key_path)
+            # Write current user intermediate name
+            set_curr_intermediate_ca_user(curr_inter_user_name)
     else:
         logger.info(
             '!!! WARNING !!!\nINTERMEDIATE TLS CERTIFICATE EXISTS WITH AN OLD ROOT, WE CREATE A NEW ONE'
         )
-        inter_user_cert, inter_user_key = gen_intermediate_ca(USER_FOLDER_NAME, root_cert, root_key, init_phase=True)
-        save_certificate(inter_user_cert, INTERMEDIATE_USER_CERT_PATH)
-        save_key(inter_user_key, INTERMEDIATE_USER_PRIVKEY_PATH)
-    # Write current user intermediate name
-    set_curr_intermediate_ca_user(USER_FOLDER_NAME)
+        inter_user_cert, inter_user_key = gen_intermediate_ca(curr_inter_user_name, root_cert, root_key, init_phase=True)
+        save_certificate(inter_user_cert, curr_inter_user_cert_path)
+        save_key(inter_user_key, curr_inter_user_key_path)
+        
+        # Write current user intermediate name
+        set_curr_intermediate_ca_user(curr_inter_user_name)
 
 
     # For each server generate a TLS certificate if not already created
@@ -121,14 +128,15 @@ def init_ca_server(logger):
         output_path = INTERMEDIATE_TLS_FOLDER + ISSUED_FOLDER_NAME + srv_name + SUFFIX_CERT_CHAIN_NAME
         gen_ca_chain_and_save(file_paths_for_CA_chain, output_path)
 
-    # Generate the admin certificate that will have admin access to the web server
-    admin_cert, admin_priv_key = gen_user_cert('admin', 'Admynis', 'Traitor', 'admin@webserver.com', inter_user_cert, inter_user_key)
-    cert_path, key_path = get_cert_and_key_path(admin_cert)
-    save_certificate(admin_cert, cert_path)
-    save_key(admin_priv_key, key_path)
+    # Generate the admin certificate that will have admin access to the web server, if not created
+    if get_cert_from_uid('admin') is None:
+        admin_cert, admin_priv_key = gen_user_cert('admin', 'Admynis', 'Traitor', 'admin@webserver.com', inter_user_cert, inter_user_key)
+        cert_path, key_path = get_cert_and_key_path(admin_cert)
+        save_certificate(admin_cert, cert_path)
+        save_key(admin_priv_key, key_path)
 
-    # Generate ca Chain for admin
-    gen_ca_chain_and_save([cert_path, INTERMEDIATE_USER_CERT_PATH, ROOT_CERT_PATH], cert_path[:-4] + SUFFIX_CERT_CHAIN_NAME)
+        # Generate ca Chain for admin
+        gen_ca_chain_and_save([cert_path, INTERMEDIATE_USER_CERT_PATH, ROOT_CERT_PATH], cert_path[:-4] + SUFFIX_CERT_CHAIN_NAME)
 
     # Create the stats files if they don't exist
     stat_paths = [ISSUED_COUNTER, REVOKED_COUNTER, SERIAL_NUMBER]
@@ -246,7 +254,6 @@ def main():
 
     @app.route('/get_new_cert', methods=['POST'])
     # TODO: don't forget to remove the created private key in the end after a delay to keep it in the backup server
-    # TODO: send the certificate in PKCS12 format
     # Check https://www.admin-enclave.com/en/articles/windows/422-how-to-create-a-pkcs12-file-with-a-ordered-certificate-chain.html
     def gen_new_cert():
         # Get user data from the posted json
@@ -372,7 +379,7 @@ def main():
     app.run(
         host=IP_CA_SRV,
         port=PORT_CA_SRV,
-        ssl_context=ssl_ctx,  # TODO: enable ssl_ctx
+        ssl_context=ssl_ctx,
         threaded=True)
 
 
