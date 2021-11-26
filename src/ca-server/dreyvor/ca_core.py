@@ -407,7 +407,7 @@ def revoke_cert(cert):
 def gen_revocation_list(revoked_folder_path):
     return [
         revoke_cert(get_cert_from_file(revoked_folder_path + p))
-        for p in listdir(revoked_folder_path) if p.endswith('.pem')
+        for p in listdir(revoked_folder_path) if p.endswith('.crt')
     ]
 
 
@@ -433,7 +433,7 @@ class CRL:
 
         if self.revoked_certificates:
             for revoked_cert in self.revoked_certificates:
-                CRL_builder.add_revoked_certificate(revoked_cert)
+                CRL_builder = CRL_builder.add_revoked_certificate(revoked_cert)
 
         crl = CRL_builder.sign(private_key=the_key,
                                algorithm=hashes.SHA256(),

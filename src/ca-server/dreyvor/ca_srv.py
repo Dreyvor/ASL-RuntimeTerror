@@ -318,7 +318,7 @@ def main():
         challenge = request.json['challenge']
         signed_challenge = request.json['signed_challenge']
 
-        cert = get_cert_from_uid(uid) # Cannot retrieve cert
+        cert = get_cert_from_uid(uid)
         if cert is None:
             return 'False'
 
@@ -347,7 +347,7 @@ def main():
             crl = CRL(folder_path=curr_inter_folder_path,
                 cert_path=curr_inter_folder_path+curr_inter_ca_user+INTERMEDIATE_SUFFIX_CERT_NAME,
                 private_key_path=ROOT_FOLDER + PRIVKEYS_FOLDER_NAME + curr_inter_ca_user + INTERMEDIATE_SUFFIX_PRIVKEY_NAME)
-            crl.update(cert)
+            crl.update_crl(cert)
             increase_revoked_counter()
 
             # Read crl and return the new crl
