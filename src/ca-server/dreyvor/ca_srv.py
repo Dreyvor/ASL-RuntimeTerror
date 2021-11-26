@@ -1,6 +1,8 @@
 import ssl
 import logging
 import time
+import base64 as b64
+
 
 from os import remove
 from pathlib import Path
@@ -134,9 +136,6 @@ def init_ca_server(logger):
         cert_path, key_path = get_cert_and_key_path(admin_cert)
         save_certificate(admin_cert, cert_path)
         save_key(admin_priv_key, key_path)
-
-        # Generate ca Chain for admin
-        gen_ca_chain_and_save([cert_path, INTERMEDIATE_USER_CERT_PATH, ROOT_CERT_PATH], cert_path[:-4] + SUFFIX_CERT_CHAIN_NAME)
 
     # Create the stats files if they don't exist
     stat_paths = [ISSUED_COUNTER, REVOKED_COUNTER, SERIAL_NUMBER]
@@ -327,7 +326,7 @@ def main():
         
         # Verify the challenge
         try:
-            crypto.verify(cert, signed_challenge, challenge, 'sha256')
+            crypto.verify(cert, b64.b64decode(signed_challenge), challenge.encode(), 'sha256')
         except crypto.Error:
             return 'False'
 
@@ -335,7 +334,7 @@ def main():
 
         curr_inter_folder_path = ROOT_FOLDER + ISSUED_FOLDER_NAME + INTERMEDIATE_FOLDER_PREFIX + get_curr_intermediate_ca_user() + '/'
         cert_path, _ = get_cert_and_key_path(cert)
-        return verify_certificate(cert_path, curr_inter_folder_path)
+        return str(verify_certificate(cert_path, curr_inter_folder_path))
 
 
     @app.route('/revoke', methods=['POST'])
