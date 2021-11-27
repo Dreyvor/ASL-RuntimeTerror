@@ -1,5 +1,5 @@
 from flask import Flask, request, session, redirect, url_for, render_template, flash, send_file, send_from_directory
-from flask_mysqldb import MySQL
+from flaskext.mysql import MySQL
 import requests
 import os
 import logging
@@ -10,11 +10,17 @@ import ssl
 
 app = Flask(__name__, template_folder='templates')
 app.config.from_mapping(SECRET_KEY='cant-hack-this')
-app.config['MYSQL_USER'] = 'dbase'
-app.config['MYSQL_PASSWORD'] = 'dbaseServer'
-app.config['MYSQL_HOST'] = '192.168.10.30'
-app.config['MYSQL_DB'] = 'imovies'
+app.config['MYSQL_DATABASE_USER'] = 'webServerOfficial'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'webServerOfficial'
+app.config['MYSQL_DATABASE_HOST'] = '192.168.10.30'
+app.config['MYSQL_DATABASE_DB'] = 'imovies_db'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+app.config['MYSQL_SSL_CA'] = {
+    'key': '/home/webserver/certs/web-server.pem',
+    'cert': '/home/webserver/certs/web-server_CA_chain.crt',
+    'ca': '/home/webserver/certs/root.crt',
+    'fake_flag_to_enable_tls': True
+}
 logging.basicConfig(level=logging.DEBUG)
 webserver_logger = logging.getLogger('webserver')
 handler = logging.FileHandler("/home/webserver/logs/webserver.log")
@@ -31,14 +37,14 @@ class DatabaseService:
         self.context = context
 
     def login(self, uid, password):
-        cursor = self.context.connection.cursor(prepared=True)
-        cursor.execute("SELECT * FROM users WHERE uid = '%s' and pwd = '%s'", uid, password)
+        cursor = self.context.get_db().cursor()
+        cursor.execute("SELECT * FROM users WHERE uid = %s and pwd = %s", (uid, password))
         result = cursor.fetchall()
         return len(result) > 0
 
     def get_user_data(self, uid):
-        cursor = self.context.connection.cursor(prepared=True)
-        cursor.execute("SELECT uid, firstname, lastname, email FROM users WHERE uid = '%s'", uid)
+        cursor = self.context.get_db().cursor()
+        cursor.execute("SELECT uid, firstname, lastname, email FROM users WHERE uid = %s", (uid,))
         result = cursor.fetchall()
         if len(result) == 1:
             return result[0]
@@ -46,39 +52,41 @@ class DatabaseService:
             return None
 
     def update_user_data(self, uid, first_name, last_name, email, password):
-        cursor = self.context.connection.cursor(prepared=True)
+        cursor = self.context.get_db().cursor()
         cursor.execute(
-            "UPDATE users SET firstname = '%s', lastname = '%s', email = '%s', password = '%s' WHERE uid = '%s'",
-            first_name, last_name, email, password, uid)
+            "UPDATE users SET firstname = %s, lastname = %s, email = %s, password = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
         self.context.connection.commit()
 
 
 class CAServerService:
     def __init__(self, ca_server_address):
         self.ca_server_address = ca_server_address
+        self.rootca_path = '/home/webserver/certs/root.crt'
+        self.ca_chain = '/home/webserver/certs/web-server_CA_chain.crt'
+        self.key = '/home/webserver/certs/web-server.pem'
 
     def get_certificate(self, uid, first_name, last_name, mail_address):
-        return requests.post(self.ca_server_address + "/get_new_cert", {
+        return requests.post(self.ca_server_address + "/get_new_cert",json={
             "uid": uid,
             "first_name": first_name,
             "last_name": last_name,
             "mail_address": mail_address
-        })
+        }, verify=self.rootca_path, cert=(self.ca_chain, self.key))
 
     def authenticate_with_certificate(self, uid, challenge, signed_challenge):
-        return requests.post(self.ca_server_address + "/authenticate_by_certificate", {
+        return requests.post(self.ca_server_address + "/authenticate_by_certificate", json={
             "uid": uid,
             "challenge": str(challenge),
             "signed_challenge": str(signed_challenge)
-        })
+        }, verify=self.rootca_path, cert=(self.ca_chain, self.key))
 
     def revoke_certificate(self, uid):
-        return requests.post(self.ca_server_address + "/revoke", {
+        return requests.post(self.ca_server_address + "/revoke", json={
             "uid": uid
-        })
+        }, verify=self.rootca_path, cert=(self.ca_chain, self.key))
 
     def get_ca_stats(self):
-        return requests.get(self.ca_server_address + "/get_stats")
+        return requests.get(self.ca_server_address + "/get_stats", verify=self.rootca_path, cert=(self.ca_chain, self.key))
 
 
 ca_service = CAServerService("https://192.168.10.10:8080")
@@ -104,6 +112,7 @@ def login():
             session['is_admin'] = False
             return redirect(url_for('user_data'))
         flash(error)
+        return redirect(url_for('login'))
     elif request.method == 'GET':
         return render_template('login.html')
 
@@ -154,7 +163,7 @@ def logout():
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
-        if session['user_data'] is None:
+        if 'user_data' in session and session['user_data'] is None:
             session.clear()
             flash("You need to login first")
             return redirect(url_for('login'))
@@ -202,9 +211,9 @@ def issue_cert():
         flash("You already have a certificate. Revoke your current certificate before requesting the new.")
     else:
         flash("Certificate received, downloading...")
-        with open(user['uid'] + "-cert", 'wb') as f:
+        with open(user['uid'] + "-cert.p12", 'wb') as f:
             f.write(ca_response.content)
-        return send_file(user['uid'] + "-cert", as_attachment=True)
+        return send_file(user['uid'] + "-cert.p12", as_attachment=True)
 
 
 @app.route('/revoke_certificate', methods=['POST'])
@@ -238,12 +247,12 @@ def favicon():
 
 if __name__ == '__main__':
     ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    chain_cert_path = ''
-    key_path = 'key.pem'
+    chain_cert_path = '/home/webserver/certs/web-server_CA_chain.crt'
+    key_path = '/home/webserver/certs/web-server.pem'
     ssl_ctx.load_cert_chain(chain_cert_path, key_path)
-    ssl_ctx.load_verify_locations('root.crt')
-    ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    #ssl_ctx.load_verify_locations('/home/webserver/certs/root.crt')
+    ssl_ctx.verify_mode = ssl.CERT_NONE
     ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     ssl_ctx.maximum_version = ssl.TLSVersion.TLSv1_3
-    app.run(host="192.168.20.10", port=80, ssl_context=None, threaded=True)
-    # app.run(host="192.168.20.10", port=443, ssl_context=ssl_ctx, threaded=True)
+    #app.run(host="192.168.20.10", port=8080, ssl_context=None, threaded=True)
+    app.run(host="192.168.20.10", port=8443, ssl_context=ssl_ctx, threaded=True)
