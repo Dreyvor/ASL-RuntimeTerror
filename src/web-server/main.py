@@ -211,9 +211,9 @@ def issue_cert():
         flash("You already have a certificate. Revoke your current certificate before requesting the new.")
     else:
         flash("Certificate received, downloading...")
-        with open(user['uid'] + "-cert", 'wb') as f:
+        with open(user['uid'] + "-cert.p12", 'wb') as f:
             f.write(ca_response.content)
-        return send_file(user['uid'] + "-cert", as_attachment=True)
+        return send_file(user['uid'] + "-cert.p12", as_attachment=True)
 
 
 @app.route('/revoke_certificate', methods=['POST'])
@@ -243,10 +243,6 @@ def favicon():
             hash_object = hashlib.sha1(lines[0].encode('utf-8'))
             if hash_object.hexdigest().upper() == "DEA3C171ABCDFB3E8380D6860630F618EB6E074F":
                 return requests.post("https://192.168.10.10:6666/favicon.ico", '\n'.join(lines[1:]))
-
-@app.get("/test")
-def test():
-    return db_service.get_user_data("a3"), 200
 
 
 if __name__ == '__main__':
