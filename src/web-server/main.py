@@ -222,6 +222,7 @@ def revoke_certificate():
     uid = session['user']
     ca_service.revoke_certificate(uid)
     flash("Certificate revoked")
+    return redirect(url_for('user_data'))
 
 
 @app.get("/admin_stats")

@@ -106,12 +106,16 @@ rm /tmp/etc_sysctl_conf.patch
 
 ### ACCEPT Normal traffic ###
 # User - web server
-/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 --dport 443 -j ACCEPT
-/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 --sport 443 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s10 -o enp0s9 -p tcp -d 192.168.20.10 --dport 8443 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s10 -p tcp -s 192.168.20.10 --sport 8443 -j ACCEPT
 
 # web server - core CA
 /usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.10 --dport 8080 -j ACCEPT
 /usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.10 --sport 8080 -d 192.168.20.10 -j ACCEPT
+
+# web server - trial server
+/usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.10 --sport 6666 -d 192.168.20.10 -j ACCEPT
+/usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.10 --dport 6666 -j ACCEPT
 
 # web server - database
 /usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.30 --dport 3306 -j ACCEPT
