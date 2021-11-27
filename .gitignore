@@ -3,3 +3,4 @@ __pycache__/
 personal_notes.md
 .idea/
 *-ca-storage
+.DS_Store
