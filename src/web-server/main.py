@@ -205,7 +205,7 @@ def user_data():
 
 
 def delete_cert_file(file):
-    time.sleep(1)
+    time.sleep(10)
     os.remove(file)
 
 
@@ -221,9 +221,10 @@ def issue_cert():
         cert_file = user['uid'] + "-cert.p12"
         with open(cert_file, 'wb') as f:
             f.write(ca_response.content)
+        res=send_file(cert_file, as_attachment=True)
         delete_thread = threading.Thread(target=delete_cert_file, args=(cert_file,), daemon=True)
         delete_thread.start()
-        return send_file(cert_file, as_attachment=True)
+        return res
 
 
 @app.route('/revoke_certificate', methods=['POST'])
