@@ -366,7 +366,7 @@ def gen_user_cert(user_id, user_last_name, user_first_name, user_email,
     return certificate, private_key
 
 
-def gen_TLS_cert(ip_addr, issuer_cert, issuer_key):
+def gen_TLS_cert(ip_addr, common_name, issuer_cert, issuer_key):
     # TODO: get issuer folder with inter_crt.subject.get_attributes_for_oid(NameOID.ORGANIZATION_NAME)[0].value
     private_key = gen_private_key(2048)
 
@@ -376,6 +376,7 @@ def gen_TLS_cert(ip_addr, issuer_cert, issuer_key):
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'Zurich'),
             x509.NameAttribute(NameOID.LOCALITY_NAME, 'Zurich'),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'iMovies'),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
         ])).issuer_name(issuer_cert.subject).public_key(
             private_key.public_key()).serial_number(
                 x509.random_serial_number()).not_valid_before(

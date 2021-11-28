@@ -121,7 +121,7 @@ def init_ca_server(logger):
             logger.info(
                 '!!! WARNING !!!\nTLS CERTIFICATE NON-EXISTENT OR SIGNED WITH AN OLD INTERMEDIATE, WE CREATE A NEW ONE'
             )
-            TLS_cert, TLS_key = gen_TLS_cert(srv_ip, inter_TLS_cert, inter_TLS_key)
+            TLS_cert, TLS_key = gen_TLS_cert(srv_ip, srv_name, inter_TLS_cert, inter_TLS_key)
             save_certificate(TLS_cert, cert_path)
             save_key(TLS_key, key_path)
 
@@ -136,6 +136,9 @@ def init_ca_server(logger):
         cert_path, key_path = get_cert_and_key_path(admin_cert)
         save_certificate(admin_cert, cert_path)
         save_key(admin_priv_key, key_path)
+        pkcs12_admin = gen_pkcs12([cert_path, curr_inter_user_cert_path, ROOT_CERT_PATH], key_path)
+        with open('/home/ca-server/admin.p12', 'wb') as f:
+            f.write(pkcs12_admin)
 
     # Create the stats files if they don't exist
     stat_paths = [ISSUED_COUNTER, REVOKED_COUNTER, SERIAL_NUMBER]
