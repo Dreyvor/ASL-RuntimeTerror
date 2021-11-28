@@ -15,7 +15,7 @@ Steps to take to configure the database server. Note: if you have the modified i
 	<sudo apt-get update>
 	
 5. Install mysql server (note the root password):
-	<sudo apt-get install mysql-server> (default password: dbaseServer)
+	<sudo apt-get install mysql-server> (password: NobodyKnowsThisString)
 
 6. Check status of server:
 	<systemctl status mysql>
@@ -86,6 +86,7 @@ Steps to take to configure the database server. Note: if you have the modified i
 	to
 	<iface enp0s3 inet static
 		address 192.168.10.30
+		network 192.168.10.0
 		netmask 255.255.255.0
 		gateway 192.168.10.1>
 	
@@ -96,6 +97,7 @@ Steps to take to configure the database server. Note: if you have the modified i
 	<allow-hotplug eth0
 	iface eth0 inet static
 		address 192.168.10.30
+		network 192.168.10.0
 		netmask 255.255.255.0
 		gateway 192.168.10.1>
 		
