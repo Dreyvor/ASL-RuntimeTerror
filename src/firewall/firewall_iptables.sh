@@ -121,9 +121,12 @@ rm /tmp/etc_sysctl_conf.patch
 /usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.30 --dport 3306 -j ACCEPT
 /usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.30 --sport 3306 -d 192.168.20.10 -j ACCEPT
 
-# web server - backup
+# webserver - backup
 /usr/sbin/iptables -A FORWARD -i enp0s9 -o enp0s8 -p tcp -s 192.168.20.10 -d 192.168.10.20 --dport 8888 -j ACCEPT
 /usr/sbin/iptables -A FORWARD -i enp0s8 -o enp0s9 -p tcp -s 192.168.10.20 --sport 8888 -d 192.168.20.10 -j ACCEPT
+
+# firewall - backup
+/usr/sbin/iptables -A INPUT -i enp0s8 -p tcp -s 192.168.10.20 --sport 8888 -d 192.168.10.1 -j ACCEPT
 
 # ### ACCEPT SSH admin traffic ###
 # web server

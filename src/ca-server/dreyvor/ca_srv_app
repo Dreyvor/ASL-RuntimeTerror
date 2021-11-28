@@ -1,0 +1,17 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:		ca-server
+# Required-Start:	$syslog $remote_fs
+# Required-Stop:
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description	certificate server ASL project
+# Description:		ASL certificate server
+### END INIT INFO
+
+# 1) Put that script in /etc/init.d/*
+# 2) chmod 755 backup_app; chown root:root backup_app
+# 3) /usr/sbin/update-rc.d backup_app defaults
+
+
+su ca-server -c 'python3 /home/ca-server/ca_srv.py.py&'
