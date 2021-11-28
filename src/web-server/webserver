@@ -1,0 +1,16 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:			webserver
+# Required-Start:	$syslog $remote_fs
+# Required-Stop:
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description	web server ASL
+# Description:		ASL web server
+### END INIT INFO
+
+# 1) Put that script in /etc/init.d/*
+# 2) chmod 755 backup_app; chown root:root backup_app
+# 3) /usr/sbin/update-rc.d backup_app defaults
+
+su webserver -c 'python3 /home/webserver/ASL-RuntimeTerror/src/web-server/main.py&'
