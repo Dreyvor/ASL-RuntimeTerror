@@ -125,10 +125,10 @@ def init_ca_server(logger):
             save_certificate(TLS_cert, cert_path)
             save_key(TLS_key, key_path)
 
-        # Generate TLS certificate chain to verify identity
-        file_paths_for_CA_chain = [cert_path, INTERMEDIATE_TLS_CERT_PATH, ROOT_CERT_PATH]
-        output_path = INTERMEDIATE_TLS_FOLDER + ISSUED_FOLDER_NAME + srv_name + SUFFIX_CERT_CHAIN_NAME
-        gen_ca_chain_and_save(file_paths_for_CA_chain, output_path)
+            # Generate TLS certificate chain to verify identity
+            file_paths_for_CA_chain = [cert_path, INTERMEDIATE_TLS_CERT_PATH, ROOT_CERT_PATH]
+            output_path = INTERMEDIATE_TLS_FOLDER + ISSUED_FOLDER_NAME + srv_name + SUFFIX_CERT_CHAIN_NAME
+            gen_ca_chain_and_save(file_paths_for_CA_chain, output_path)
 
     # Generate the admin certificate that will have admin access to the web server, if not created
     if get_cert_from_uid('admin') is None:
@@ -137,7 +137,7 @@ def init_ca_server(logger):
         save_certificate(admin_cert, cert_path)
         save_key(admin_priv_key, key_path)
         pkcs12_admin = gen_pkcs12([cert_path, curr_inter_user_cert_path, ROOT_CERT_PATH], key_path)
-        with open('/home/ca-server/admin.p12', 'wb') as f:
+        with open(HOME+'admin.p12', 'wb') as f:
             f.write(pkcs12_admin)
 
     # Create the stats files if they don't exist
