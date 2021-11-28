@@ -4,11 +4,11 @@
 <nav>
     <h1>Login server</h1>
     <ul>
-        {% if session['is_admin'] == False %}
+        {% if 'user_data' in session and not session['is_admin'] %}
         <li><span>{{ session['user_data']['firstname'] }}</span>
         <li><a href="{{ url_for('logout') }}">Log Out</a>
         <li><a href="{{ url_for('user_data') }}">User info</a>
-            {% elif session['is_admin'] %}
+            {% 'user_data' in session and session['is_admin'] %}
         <li><span>Admin</span>
         <li><a href="{{ url_for('logout') }}">Log Out</a>
         <li><a href="{{ url_for('admin_stats') }}">CA stats</a>
