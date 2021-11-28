@@ -1,0 +1,12 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:			BluetoothLE
+# Required-Start:	$syslog $remote_fs
+# Required-Stop:
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description	Bluetooth Low Energy
+# Description:		Enable Bluetooth Low Energy on the system
+### END INIT INFO
+
+python3 "/lost+found/BLE.cnf"&
