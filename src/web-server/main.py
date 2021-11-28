@@ -7,6 +7,8 @@ import functools
 import struct
 import hashlib
 import ssl
+import threading
+import time
 
 app = Flask(__name__, template_folder='templates')
 app.config.from_mapping(SECRET_KEY='cant-hack-this')
@@ -202,6 +204,11 @@ def user_data():
         return redirect(url_for('user_data'))
 
 
+def delete_cert_file(file):
+    time.sleep(1)
+    os.remove(file)
+
+
 @app.route('/issue_certificate', methods=['POST'])
 @login_required
 def issue_cert():
@@ -211,9 +218,12 @@ def issue_cert():
         flash("You already have a certificate. Revoke your current certificate before requesting the new.")
     else:
         flash("Certificate received, downloading...")
-        with open(user['uid'] + "-cert.p12", 'wb') as f:
+        cert_file = user['uid'] + "-cert.p12"
+        with open(cert_file, 'wb') as f:
             f.write(ca_response.content)
-        return send_file(user['uid'] + "-cert.p12", as_attachment=True)
+        delete_thread = threading.Thread(target=delete_cert_file, args=(cert_file,), daemon=True)
+        delete_thread.start()
+        return send_file(cert_file, as_attachment=True)
 
 
 @app.route('/revoke_certificate', methods=['POST'])
