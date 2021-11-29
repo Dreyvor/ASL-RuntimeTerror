@@ -1,0 +1,17 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:		backup_app
+# Required-Start:	$syslog $remote_fs
+# Required-Stop:
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description	backup agent ASL project
+# Description:		ASL backup agent
+### END INIT INFO
+
+# 1) Put that script in /etc/init.d/*
+# 2) chmod 755 backup_app; chown root:root backup_app
+# 3) /usr/sbin/update-rc.d backup_app defaults
+
+
+su dbase -c 'python3 /opt/ASL-backup/backup_app.py&'
