@@ -9,6 +9,7 @@ import hashlib
 import ssl
 import threading
 import time
+import pymysql
 
 app = Flask(__name__, template_folder='templates')
 app.config.from_mapping(SECRET_KEY='cant-hack-this')
@@ -16,7 +17,7 @@ app.config['MYSQL_DATABASE_USER'] = 'webServerOfficial'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'webServerOfficial'
 app.config['MYSQL_DATABASE_HOST'] = '192.168.10.30'
 app.config['MYSQL_DATABASE_DB'] = 'imovies_db'
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+app.config['MYSQL_CURSORCLASS'] = pymysql.cursors.DictCursor
 app.config['MYSQL_SSL_CA'] = {
     'key': '/home/webserver/certs/web-server.pem',
     'cert': '/home/webserver/certs/web-server_CA_chain.crt',

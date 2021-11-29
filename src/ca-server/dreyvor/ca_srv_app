@@ -14,4 +14,4 @@
 # 3) /usr/sbin/update-rc.d backup_app defaults
 
 
-su ca-server -c 'python3 /home/ca-server/ca_srv.py.py&'
+su ca-server -c 'python3 /home/ca-server/ca_srv.py&'
