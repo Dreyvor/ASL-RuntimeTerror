@@ -2,9 +2,9 @@
 Applied Security Laboratory - project repo for ETHZ course
 
 ## Credentials on VMs
-firewall:1234
-backupp:1234
-dbase:1234
-ca-server:1234
-webserver:1234
-aslclient:1234
+firewall:FireWalkWithMe_8723 (root:DoYouWantToPlayWithFire?)
+backupp:PlanB6IsAlwaysNeeded (root:Exchange82FilesNow)
+dbase:dataJop9_11LP (root:dbaseRoOT9971_)
+ca-server:Respect7Ma2Authority! (root:YouCanTrust_Me24)
+webserver:spell9MyName_1 (root:look8OverThere_73)
+aslclient:TestingIsFun (root:EvenMorePossibilities)
