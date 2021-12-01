@@ -138,6 +138,7 @@ def login_certificate():
         ca_response = ca_service.authenticate_with_certificate(uid, session['challenge'], response)
         if ca_response.text == "True":
             session["is_admin"] = False
+            session['user'] = uid
             return redirect(url_for('user_data'))
         else:
             session['challenge'] = get_challenge()
@@ -162,14 +163,6 @@ def login_admin():
             return render_template('admin.html', challenge=session['challenge'])
 
 
-@app.post("/logout")
-def logout():
-    session["user_data"] = None
-    session["user"] = None
-    session.clear()
-    return redirect(url_for('login'))
-
-
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -180,6 +173,17 @@ def login_required(view):
         return view(**kwargs)
 
     return wrapped_view
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    #session["user_data"] = None
+    session.pop("user_data")
+    #session["user"] = None
+    session.pop("user")
+    session.clear()
+    return redirect(url_for('login'))
 
 
 def admin_required(view):
