@@ -56,8 +56,12 @@ class DatabaseService:
 
     def update_user_data(self, uid, first_name, last_name, email, password):
         cursor = self.context.get_db().cursor()
-        cursor.execute(
-            "UPDATE users SET firstname = %s, lastname = %s, email = %s, pwd = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
+        if password is not None and len(password)>0:
+            cursor.execute(
+                "UPDATE users SET firstname = %s, lastname = %s, email = %s, pwd = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
+        else:
+            cursor.execute(
+                "UPDATE users SET firstname = %s, lastname = %s, email = %s WHERE uid = %s", (first_name, last_name, email, uid))
         self.context.get_db().commit()
 
 
