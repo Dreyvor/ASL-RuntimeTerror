@@ -107,6 +107,11 @@ def start():
 
 @app.route('/login', methods=('GET', 'POST'))
 def login():
+    if 'user' in session and session['user'] is not None:
+        return redirect(url_for('user_data'))
+    elif session["is_admin"]:
+        return redirect(url_for('admin_stats'))
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -126,6 +131,11 @@ def login():
 
 @app.route("/login_certificate", methods=('GET', 'POST'))
 def login_certificate():
+    if 'user' in session and session['user'] is not None:
+        return redirect(url_for('user_data'))
+    elif session["is_admin"]:
+        return redirect(url_for('admin_stats'))
+
     if request.method == 'GET':
         session['challenge'] = get_challenge()
         return render_template('certificate.html', challenge=session['challenge'])
@@ -148,6 +158,11 @@ def login_certificate():
 
 @app.route('/login_admin', methods=('GET', 'POST'))
 def login_admin():
+    if 'user' in session and session['user'] is not None:
+            return redirect(url_for('user_data'))
+    elif session["is_admin"]:
+            return redirect(url_for('admin_stats'))
+    
     if request.method == 'GET':
         session['challenge'] = get_challenge()
         return render_template('admin.html', challenge=session['challenge'])
@@ -156,6 +171,7 @@ def login_admin():
         ca_response = ca_service.authenticate_with_certificate("admin", session['challenge'], response)
         if ca_response.text == "True":
             session["is_admin"] = True
+            session['user'] = 'admin'
             return redirect(url_for('admin_stats'))
         else:
             session['challenge'] = get_challenge()
@@ -178,10 +194,11 @@ def login_required(view):
 @app.route("/logout")
 @login_required
 def logout():
-    #session["user_data"] = None
-    session.pop("user_data")
-    #session["user"] = None
-    session.pop("user")
+    session["user_data"] = None
+    #session.pop("user_data")
+    session["user"] = None
+    session['is_admin'] = False
+    #session.pop("user")
     session.clear()
     return redirect(url_for('login'))
 
