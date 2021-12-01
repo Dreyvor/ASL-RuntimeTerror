@@ -57,7 +57,7 @@ class DatabaseService:
     def update_user_data(self, uid, first_name, last_name, email, password):
         cursor = self.context.get_db().cursor()
         cursor.execute(
-            "UPDATE users SET firstname = %s, lastname = %s, email = %s, password = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
+            "UPDATE users SET firstname = %s, lastname = %s, email = %s, pwd = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
         self.context.connection.commit()
 
 
