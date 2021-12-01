@@ -109,7 +109,7 @@ def start():
 def login():
     if 'user' in session and session['user'] is not None:
         return redirect(url_for('user_data'))
-    elif session["is_admin"]:
+    elif 'is_admin' in session and session["is_admin"]:
         return redirect(url_for('admin_stats'))
 
     if request.method == 'POST':
@@ -133,7 +133,7 @@ def login():
 def login_certificate():
     if 'user' in session and session['user'] is not None:
         return redirect(url_for('user_data'))
-    elif session["is_admin"]:
+    elif 'is_admin' in session and session["is_admin"]:
         return redirect(url_for('admin_stats'))
 
     if request.method == 'GET':
@@ -159,9 +159,9 @@ def login_certificate():
 @app.route('/login_admin', methods=('GET', 'POST'))
 def login_admin():
     if 'user' in session and session['user'] is not None:
-            return redirect(url_for('user_data'))
-    elif session["is_admin"]:
-            return redirect(url_for('admin_stats'))
+        return redirect(url_for('user_data'))
+    elif 'is_admin' in session and session["is_admin"]:
+        return redirect(url_for('admin_stats'))
     
     if request.method == 'GET':
         session['challenge'] = get_challenge()
