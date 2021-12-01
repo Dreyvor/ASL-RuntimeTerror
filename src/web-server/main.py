@@ -58,7 +58,7 @@ class DatabaseService:
         cursor = self.context.get_db().cursor()
         cursor.execute(
             "UPDATE users SET firstname = %s, lastname = %s, email = %s, pwd = %s WHERE uid = %s", (first_name, last_name, email, password, uid))
-        self.context.connection.commit()
+        self.context.get_db().commit()
 
 
 class CAServerService:
