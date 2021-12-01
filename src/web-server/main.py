@@ -132,6 +132,9 @@ def login_certificate():
     elif request.method == 'POST':
         response = request.form['challenge']
         uid = request.form['username']
+        if uid == 'admin':
+            flash('admin has a separate login page')
+            return redirect(url_for('login_admin'))
         ca_response = ca_service.authenticate_with_certificate(uid, session['challenge'], response)
         if ca_response.text == "True":
             session["is_admin"] = False
